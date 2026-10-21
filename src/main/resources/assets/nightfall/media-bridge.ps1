@@ -1,5 +1,7 @@
 param([string]$Action = "status")
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding -ArgumentList $false
+$OutputEncoding = [Console]::OutputEncoding
 try {
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
     $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime]

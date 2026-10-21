@@ -15,8 +15,8 @@ import java.util.Locale;
 
 /** Per-module options screen. Opened using right-click on a module card. */
 public final class ModuleSettingsScreen extends Screen {
-    private static final int PANEL = 0xF10D0A13, CARD = 0xFF211D2B, BORDER = 0xFF393246;
-    private static final int TEXT = 0xFFF1ECF7, MUTED = 0xFF9991A8, ACCENT = 0xFFB98BFF, ACCENT_BG = 0xFF362747;
+    private static final int PANEL = 0xF10A0712, CARD = 0xFF24182E, BORDER = 0xFF4B3154;
+    private static final int TEXT = 0xFFFFF0FE, MUTED = 0xFFB39AB8, ACCENT = 0xFFF05CCF, ACCENT_BG = 0xFF572447;
     private final String featureId;
     private final Screen parent;
     private boolean waitingForBind;

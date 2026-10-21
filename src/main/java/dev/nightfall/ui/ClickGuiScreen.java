@@ -66,7 +66,14 @@ public final class ClickGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
-        ctx.fill(0, 0, width, height, 0xB8090610);
+        long now = System.currentTimeMillis();
+        ctx.fillGradient(0, 0, width, height, 0xD0090615, 0xE9160A24);
+        for (int i = 0; i < 28; i++) {
+            int sx = (int)Math.floorMod(i * 137L + now / (22L + i % 5), Math.max(1, width));
+            int sy = (int)Math.floorMod(i * 79L + now / (31L + i % 7), Math.max(1, height));
+            int pulse = (int)(22 + 22 * (0.5 + 0.5 * Math.sin(now * 0.002 + i)));
+            roundedFill(ctx, sx, sy, 2 + i % 2, 2 + i % 2, (pulse << 24) | 0x00EF6CDE, 2);
+        }
         Geometry g = geometry();
         if (g.pw < 590 || g.ph < 350) {
             drawText(ctx, "Увеличь разрешение экрана для NIGHTFALL ClickGUI", 14, 14, TEXT);
@@ -75,14 +82,14 @@ public final class ClickGuiScreen extends Screen {
 
         int x = g.x, y = g.y, right = x + g.pw, bottom = y + g.ph;
         roundedFill(ctx, x + 4, y + 5, g.pw, g.ph, 0x65000000, 12);
-        roundedFill(ctx, x, y, g.pw, g.ph, BG, 10);
+        roundedFill(ctx, x, y, g.pw, g.ph, BG, 16);
         ctx.fill(x, y, right, y + 1, BORDER);
         ctx.fill(x, y, x + 3, bottom, ACCENT);
-        ctx.fill(x + 3, y + 1, x + g.sideW, bottom - 1, SIDEBAR);
+        roundedFill(ctx, x + 3, y + 1, g.sideW - 3, g.ph - 2, SIDEBAR, 13);
         ctx.fill(x + g.sideW, y + 1, x + g.sideW + 1, bottom - 1, BORDER);
 
         // Brand block.
-        ctx.fill(x + 18, y + 18, x + 46, y + 46, ACCENT_DARK);
+        roundedFill(ctx, x + 18, y + 18, 28, 28, ACCENT_DARK, 8);
         ctx.fill(x + 18, y + 18, x + 46, y + 20, ACCENT);
         drawText(ctx, "N", x + 27, y + 26, TEXT);
         drawText(ctx, "NIGHTFALL", x + 55, y + 20, TEXT);
@@ -117,7 +124,7 @@ public final class ClickGuiScreen extends Screen {
             ctx.fill(artX - 2, artY - 2, artX + artW + 2, artY + artH + 2, BORDER);
             ctx.fill(artX, artY, artX + artW, artY + artH, PANEL);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT, artX, artY,
-                    0.0f, 0.0f, artW, artH, 80, 100);
+                    0.0f, 0.0f, artW, artH, 160, 160);
             ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH, 0xD90A0712);
             ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH - 23, ACCENT);
             drawText(ctx, "STAY IN THE NIGHT", artX + 7, artY + artH - 16, TEXT);
@@ -165,8 +172,8 @@ public final class ClickGuiScreen extends Screen {
             ctx.fill(bx + 5, by, bx + g.cardW - 5, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
             ctx.fill(bx, by + 5, bx + 2, by + g.cardH - 5, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
 
-            ctx.fill(bx + 9, by + 9, bx + 33, by + 33, 0xFF3B2444);
-            ctx.fill(bx + 9, by + 9, bx + 33, by + 10, feature.enabled() ? ACCENT : BORDER);
+            roundedFill(ctx, bx + 9, by + 9, 24, 24, 0xFF3B2444, 7);
+            roundedFill(ctx, bx + 12, by + 9, 18, 2, feature.enabled() ? edge : BORDER, 1);
             drawModuleGlyph(ctx, feature.id(), bx + 11, by + 11, feature.enabled() ? ACCENT : ACCENT_2);
             drawText(ctx, feature.name(), bx + 40, by + 8, TEXT);
             String desc = feature.description();
@@ -177,7 +184,7 @@ public final class ClickGuiScreen extends Screen {
                     FeatureBinds.isBound(feature.id()) ? ACCENT_2 : 0xFF886F90);
 
             int tx = bx + g.cardW - 42, ty = by + 8;
-            roundedFill(ctx, tx, ty, 31, 15, feature.enabled() ? ACCENT_DARK : 0xFF3A2A41, 7);
+            roundedFill(ctx, tx, ty, 31, 15, feature.enabled() ? ACCENT_DARK : 0xFF3A2A41, 8);
             roundedFill(ctx, tx + (feature.enabled() ? 17 : 3), ty + 3, 10, 9,
                     feature.enabled() ? ACCENT : 0xFF9A83A4, 4);
             drawText(ctx, feature.enabled() ? "ON" : "OFF", bx + g.cardW - 41, by + 49,
@@ -259,10 +266,24 @@ public final class ClickGuiScreen extends Screen {
 
     private void roundedFill(DrawContext ctx, int x, int y, int width, int height, int color, int radius) {
         if (width <= 0 || height <= 0) return;
+        int r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
         for (int row = 0; row < height; row++) {
-            int inset = Math.max(0, radius - Math.min(row, height - 1 - row));
+            int edgeY = Math.min(row, height - 1 - row);
+            int inset = 0;
+            if (edgeY < r) {
+                double dy = r - edgeY - 0.5;
+                inset = Math.max(0, (int)Math.ceil(r - Math.sqrt(Math.max(0.0, r * r - dy * dy))));
+            }
             ctx.fill(x + inset, y + row, x + width - inset, y + row + 1, color);
         }
+    }
+
+    private int mixColor(int from, int to, float amount) {
+        float t = Math.max(0f, Math.min(1f, amount));
+        int r = Math.round(((from >> 16) & 255) * (1 - t) + ((to >> 16) & 255) * t);
+        int g = Math.round(((from >> 8) & 255) * (1 - t) + ((to >> 8) & 255) * t);
+        int b = Math.round((from & 255) * (1 - t) + (to & 255) * t);
+        return (from & 0xFF000000) | (r << 16) | (g << 8) | b;
     }
 
     private void drawCategoryGlyph(DrawContext ctx, Feature.Category category, int x, int y, int color) {

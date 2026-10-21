@@ -234,18 +234,22 @@ public final class NightfallClient implements ClientModInitializer {
             ctx.fill(0, 0, w, h, (Math.min(22, c.player.hurtTime * 2) << 24) | 0x0000BBAA);
 
         if (enabled("watermark")) {
-            ctx.fill(9, 9, 126, 33, dark); ctx.fill(9, 9, 11, 33, accent);
-            drawText(ctx, c, "NIGHTFALL", 18, 12, white);
-            drawText(ctx, c, "1.21.4  /  FABRIC", 18, 22, muted);
+            int[] p = HudLayout.get("watermark", 9, 9); int x = p[0], y = p[1];
+            ctx.fill(x, y, x + 117, y + 24, dark); ctx.fill(x, y, x + 2, y + 24, accent);
+            drawText(ctx, c, "NIGHTFALL", x + 9, y + 3, white);
+            drawText(ctx, c, "1.21.4  /  FABRIC", x + 9, y + 13, muted);
         }
         if (enabled("fps")) {
-            String s = c.getCurrentFps() + " FPS"; int x = w - textWidth(c, s) - 12;
-            ctx.fill(x - 6, 9, w - 8, 25, dark); drawText(ctx, c, s, x, 13, accent);
+            String s = c.getCurrentFps() + " FPS";
+            int[] p = HudLayout.get("fps", w - textWidth(c, s) - 12, 9); int x = p[0], y = p[1];
+            ctx.fill(x - 6, y - 4, x + textWidth(c, s) + 4, y + 12, dark);
+            drawText(ctx, c, s, x, y, accent);
         }
         if (enabled("coordinates")) {
             String s = String.format(Locale.ROOT, "X %.1f   Y %.1f   Z %.1f", c.player.getX(), c.player.getY(), c.player.getZ());
-            ctx.fill(9, h - 25, 9 + textWidth(c, s) + 13, h - 9, dark);
-            drawText(ctx, c, s, 15, h - 21, white);
+            int[] p = HudLayout.get("coordinates", 9, h - 25); int x = p[0], y = p[1];
+            ctx.fill(x, y, x + textWidth(c, s) + 13, y + 16, dark);
+            drawText(ctx, c, s, x + 6, y + 4, white);
         }
         if (enabled("customcrosshair")) {
             int x = w / 2, y = h / 2;
@@ -257,13 +261,15 @@ public final class NightfallClient implements ClientModInitializer {
             String s = "W " + (c.options.forwardKey.isPressed() ? "■" : "□") + "   A " + (c.options.leftKey.isPressed() ? "■" : "□")
                     + "   S " + (c.options.backKey.isPressed() ? "■" : "□") + "   D " + (c.options.rightKey.isPressed() ? "■" : "□");
             int tw = textWidth(c, s);
-            ctx.fill(w - tw - 18, h - 26, w - 8, h - 10, dark);
-            drawText(ctx, c, s, w - tw - 12, h - 21, accent);
+            int[] p = HudLayout.get("keystrokes", w - tw - 18, h - 26); int x = p[0], y = p[1];
+            ctx.fill(x, y, x + tw + 10, y + 16, dark);
+            drawText(ctx, c, s, x + 5, y + 5, accent);
         }
         if (enabled("targethud") && c.crosshairTarget instanceof EntityHitResult hit
                 && hit.getEntity() instanceof LivingEntity living && living != c.player && living.isAlive()) {
             String name = living.getName().getString(), hp = String.format(Locale.ROOT, "HP %.1f / %.1f", living.getHealth(), living.getMaxHealth());
-            int bw = Math.max(textWidth(c, name), textWidth(c, hp)) + 20, x = (w - bw) / 2, y = h / 2 + 34;
+            int bw = Math.max(textWidth(c, name), textWidth(c, hp)) + 20;
+            int[] p = HudLayout.get("targethud", (w - bw) / 2, h / 2 + 34); int x = p[0], y = p[1];
             ctx.fill(x, y, x + bw, y + 31, dark); ctx.fill(x, y, x + 2, y + 31, accent);
             drawText(ctx, c, name, x + 8, y + 5, white);
             drawText(ctx, c, hp, x + 8, y + 17, muted);
@@ -279,7 +285,8 @@ public final class NightfallClient implements ClientModInitializer {
             Vec3d v = c.player.getVelocity();
             double speed = Math.sqrt(v.x * v.x + v.z * v.z) * 20.0;
             String s = String.format(Locale.ROOT, "%.2f m/s", speed);
-            drawText(ctx, c, s, 12, h - 39, accent);
+            int[] p = HudLayout.get("speedometer", 12, h - 39);
+            drawText(ctx, c, s, p[0], p[1], accent);
         }
         if (enabled("totemcount")) {
             int count = c.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) ? 1 : 0;
@@ -287,10 +294,11 @@ public final class NightfallClient implements ClientModInitializer {
                 ItemStack stack = c.player.getInventory().getStack(i);
                 if (stack.isOf(Items.TOTEM_OF_UNDYING)) count += stack.getCount();
             }
-            drawText(ctx, c, "TOTEMS  " + count, 12, 37, count > 0 ? accent : muted);
+            int[] p = HudLayout.get("totemcount", 12, 37);
+            drawText(ctx, c, "TOTEMS  " + count, p[0], p[1], count > 0 ? accent : muted);
         }
         if (enabled("armorhud")) {
-            int x = w / 2 - 72, y = h - 58, index = 0;
+            int[] p = HudLayout.get("armorhud", w / 2 - 72, h - 58); int x = p[0], y = p[1], index = 0;
             for (ItemStack stack : c.player.getArmorItems()) {
                 if (stack.isEmpty()) continue;
                 int durability = stack.isDamageable() ? (int)(100.0 * (stack.getMaxDamage() - stack.getDamage()) / stack.getMaxDamage()) : 100;
@@ -300,17 +308,18 @@ public final class NightfallClient implements ClientModInitializer {
             }
         }
         if (enabled("potionhud")) {
-            int y = 42;
+            int[] p = HudLayout.get("potionhud", w - 150, 42); int x = p[0], y = p[1];
             for (StatusEffectInstance effect : c.player.getStatusEffects()) {
                 String name = effect.getEffectType().value().getName().getString();
                 int seconds = effect.getDuration() / 20;
-                drawText(ctx, c, name + "  " + seconds + "s", w - textWidth(c, name + "  " + seconds + "s") - 10, y, muted);
+                drawText(ctx, c, name + "  " + seconds + "s", x, y, muted);
                 y += 11;
                 if (y > 120) break;
             }
         }
         if (enabled("radar")) {
-            int rx = w - 108, ry = 38, size = 90, centerX = rx + size / 2, centerY = ry + size / 2;
+            int[] p = HudLayout.get("radar", w - 108, 38);
+            int rx = p[0], ry = p[1], size = 90, centerX = rx + size / 2, centerY = ry + size / 2;
             ctx.fill(rx, ry, rx + size, ry + size, 0xD910171E);
             ctx.fill(rx, ry, rx + size, ry + 1, 0xFF38454C);
             ctx.fill(rx, ry, rx + 1, ry + size, accent);
@@ -329,6 +338,31 @@ public final class NightfallClient implements ClientModInitializer {
                 ctx.fill(px - 2, py - 2, px + 3, py + 3, 0xFF79BDB5);
             }
             drawText(ctx, c, "RADAR", rx + 6, ry + 5, muted);
+        }
+        if (enabled("mediaplayer")) {
+            MusicManager.MediaState media = MusicManager.state();
+            int[] p = HudLayout.get("mediaplayer", w - 260, 39); int x = p[0], y = p[1], bw = 248, bh = 45;
+            ctx.fill(x, y, x + bw, y + bh, dark); ctx.fill(x, y, x + 2, y + bh, accent);
+            String title = media.title().isBlank() ? "Открой Spotify / Яндекс Музыку" : media.title();
+            String artist = media.artist().isBlank() ? media.status() : media.artist();
+            while (textWidth(c, title) > bw - 18 && title.length() > 3) title = title.substring(0, title.length()-2) + "…";
+            while (textWidth(c, artist) > bw - 18 && artist.length() > 3) artist = artist.substring(0, artist.length()-2) + "…";
+            drawText(ctx, c, title, x + 9, y + 5, white);
+            drawText(ctx, c, artist, x + 9, y + 17, muted);
+            int progressWidth = media.durationMs() > 0 ? (int)((bw - 18) * Math.min(1.0, media.positionNow() / (double)media.durationMs())) : 0;
+            ctx.fill(x + 9, y + 35, x + bw - 9, y + 37, 0xFF34434B);
+            if (progressWidth > 0) ctx.fill(x + 9, y + 35, x + 9 + progressWidth, y + 37, accent);
+        }
+        if (enabled("worldlyrics")) {
+            String lyric = MusicManager.currentLyric();
+            if (!lyric.isBlank()) {
+                int[] p = HudLayout.get("worldlyrics", w / 2 - 175, h - 57); int x = p[0], y = p[1], bw = 350;
+                String line = lyric;
+                while (textWidth(c, line) > bw - 20 && line.length() > 3) line = line.substring(0, line.length()-2) + "…";
+                ctx.fill(x, y, x + bw, y + 25, 0xCC10171E);
+                ctx.fill(x, y, x + 2, y + 25, accent);
+                drawText(ctx, c, line, x + 10, y + 8, white);
+            }
         }
     }
 }

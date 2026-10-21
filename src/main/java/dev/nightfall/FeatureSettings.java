@@ -22,7 +22,7 @@ public final class FeatureSettings {
                        List<String> options, Object defaultValue) {}
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Type MAP_TYPE = new TypeToken<Map<String, JsonElement>>() {}.getType();
+    private static final java.lang.reflect.Type MAP_TYPE = new TypeToken<Map<String, JsonElement>>() {}.getType();
     private static final Map<String, Spec> SPECS = new LinkedHashMap<>();
     private static final Map<String, Object> VALUES = new LinkedHashMap<>();
     private static final Path FILE = MinecraftClient.getInstance().runDirectory.toPath()
@@ -34,7 +34,6 @@ public final class FeatureSettings {
         add("killaura", "rotationSpeed", "Скорость поворота", Type.SLIDER, 5, 90, 1, List.of(), 42.0);
         add("killaura", "criticalMode", "Тип атаки", Type.MODE, 0, 0, 0, List.of("Natural Crits", "Normal"), "Natural Crits");
         add("killaura", "attackDelay", "Задержка атаки", Type.SLIDER, 1, 10, 1, List.of(), 3.0);
-        add("autototem", "healthThreshold", "Порог здоровья", Type.SLIDER, 1, 20, 1, List.of(), 12.0);
         add("autototem", "swapDelay", "Задержка замены", Type.SLIDER, 1, 10, 1, List.of(), 5.0);
         add("zoom", "fov", "Поле зрения", Type.SLIDER, 10, 50, 1, List.of(), 28.0);
         add("fullbright", "gamma", "Яркость", Type.SLIDER, 10, 100, 1, List.of(), 100.0);

@@ -165,28 +165,21 @@ public final class MusicManager {
 
     private static void fetchLyrics(String title, String artist, String key) {
         try {
-            String url = "https://lrclib.net/api/search?track_name=" + encode(title) + "&artist_name=" + encode(artist);
-            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                    .timeout(Duration.ofSeconds(5))
-                    .header("User-Agent", "NIGHTFALL/1.0 (Minecraft mod)")
-                    .GET().build();
-            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (!key.equals(lyricTrackKey) || response.statusCode() != 200) return;
-            JsonElement root = JsonParser.parseString(response.body());
-            if (!root.isJsonArray()) return;
-            JsonArray array = root.getAsJsonArray();
-            JsonObject best = null;
-            for (JsonElement element : array) {
-                if (!element.isJsonObject()) continue;
-                JsonObject candidate = element.getAsJsonObject();
-                if (candidate.has("syncedLyrics") && !candidate.get("syncedLyrics").isJsonNull()
-                        && !candidate.get("syncedLyrics").getAsString().isBlank()) {
-                    best = candidate;
-                    break;
+            String exactUrl = "https://lrclib.net/api/search?track_name=" + encode(title) + "&artist_name=" + encode(artist);
+            JsonArray array = searchLyrics(exactUrl, key);
+            if (array == null) return;
+            JsonObject best = findSyncedLyrics(array, title, artist);
+            if (best == null) {
+                // A broad search catches alternate spellings and track metadata variants.
+                try { Thread.sleep(300L); } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
+                JsonArray fallback = searchLyrics("https://lrclib.net/api/search?q=" + encode(title + " " + artist), key);
+                if (fallback != null) best = findSyncedLyrics(fallback, title, artist);
             }
             if (best == null) {
-                lyricError = "Синхронные тексты не найдены";
+                if (key.equals(lyricTrackKey)) lyricError = "Синхронные тексты не найдены";
                 return;
             }
             String raw = best.get("syncedLyrics").getAsString();
@@ -215,6 +208,56 @@ public final class MusicManager {
             if (key.equals(lyricTrackKey)) lyricError = "Не удалось загрузить lyrics";
             NightfallClient.LOGGER.debug("Lyrics lookup failed: {}", e.getMessage());
         }
+    }
+
+    private static JsonArray searchLyrics(String url, String key) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(5))
+                .header("User-Agent", "NIGHTFALL/1.1 (https://github.com/bs9973866-png/client)")
+                .GET().build();
+        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (!key.equals(lyricTrackKey)) return null;
+        if (response.statusCode() != 200) {
+            if (response.statusCode() == 429) {
+                lyricError = "ЛИМИТ ЗАПРОСОВ LRCLIB — ПОВТОР ПОЗЖЕ";
+                // Be conservative when the service asks clients to slow down.
+                long retryMs = response.headers().firstValue("Retry-After")
+                        .map(value -> {
+                            try { return Math.max(30L, Long.parseLong(value)) * 1000L; }
+                            catch (NumberFormatException ignored) { return 30_000L; }
+                        }).orElse(30_000L);
+                lastLyricsAttemptAt = System.currentTimeMillis() + Math.max(0L, retryMs - 30_000L);
+            } else {
+                lyricError = "LRCLIB: HTTP " + response.statusCode();
+            }
+            return null;
+        }
+        JsonElement root = JsonParser.parseString(response.body());
+        return root.isJsonArray() ? root.getAsJsonArray() : null;
+    }
+
+    private static JsonObject findSyncedLyrics(JsonArray array, String title, String artist) {
+        JsonObject best = null;
+        int bestScore = Integer.MIN_VALUE;
+        String wantedTitle = title.trim().toLowerCase(java.util.Locale.ROOT);
+        String wantedArtist = artist.trim().toLowerCase(java.util.Locale.ROOT);
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) continue;
+            JsonObject candidate = element.getAsJsonObject();
+            if (!candidate.has("syncedLyrics") || candidate.get("syncedLyrics").isJsonNull()
+                    || candidate.get("syncedLyrics").getAsString().isBlank()) continue;
+            String resultTitle = string(candidate, "trackName");
+            if (resultTitle.isBlank()) resultTitle = string(candidate, "name");
+            String resultArtist = string(candidate, "artistName");
+            int score = 0;
+            if (!wantedTitle.isBlank() && resultTitle.trim().equalsIgnoreCase(wantedTitle)) score += 4;
+            if (!wantedArtist.isBlank() && resultArtist.trim().equalsIgnoreCase(wantedArtist)) score += 2;
+            if (score > bestScore) {
+                best = candidate;
+                bestScore = score;
+            }
+        }
+        return best;
     }
 
     private static String encode(String value) {

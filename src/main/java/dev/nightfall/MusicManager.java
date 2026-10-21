@@ -111,6 +111,8 @@ public final class MusicManager {
             String artist = string(json, "artist");
             String app = string(json, "app");
             String status = string(json, "status");
+            String error = string(json, "error");
+            if (!error.isBlank()) status = "Unavailable: " + error;
             long pos = number(json, "positionMs");
             long duration = number(json, "durationMs");
             MediaState next = new MediaState(ok, title, artist, app, status, pos, duration, System.currentTimeMillis());
@@ -148,7 +150,7 @@ public final class MusicManager {
             process = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
                     "-ExecutionPolicy", "Bypass", "-File", SCRIPT_PATH.toString(), action)
                     .redirectErrorStream(true).start();
-            if (!process.waitFor(2500, TimeUnit.MILLISECONDS)) {
+            if (!process.waitFor(6500, TimeUnit.MILLISECONDS)) {
                 process.destroyForcibly();
                 return "";
             }

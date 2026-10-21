@@ -36,7 +36,6 @@ public final class NightfallClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     public static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.jpg");
     private static KeyBinding clickGuiKey, zoomKey, hudEditorKey, mediaKey;
-    private static double originalGamma = 1.0;
     private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks, totemDelay;
     private static long lastHitTime;
     private static boolean zoomWasActive, jumpWasPressed;
@@ -75,14 +74,7 @@ public final class NightfallClient implements ClientModInitializer {
     }
 
     static void applyFeatureState(String id, boolean active) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.options == null) return;
-        if (id.equals("fullbright")) {
-            if (active) {
-                originalGamma = client.options.getGamma().getValue();
-                client.options.getGamma().setValue(FeatureSettings.number("fullbright", "gamma"));
-            } else client.options.getGamma().setValue(originalGamma);
-        }
+        // FullBright is applied in LightmapTextureManager; vanilla gamma is clamped to 1.0.
     }
 
     private static void tick(MinecraftClient client) {
@@ -96,6 +88,7 @@ public final class NightfallClient implements ClientModInitializer {
             client.setScreen(client.currentScreen instanceof MediaPlayerScreen ? null : new MediaPlayerScreen());
         }
         FeatureBinds.tick(client);
+        PearlFollowManager.tick(client);
         if (client.player == null || client.world == null) {
             restoreZoom(client);
             WorldVisuals.tick(client);
@@ -104,8 +97,6 @@ public final class NightfallClient implements ClientModInitializer {
         var player = client.player;
         WorldVisuals.tick(client);
 
-        if (enabled("fullbright") && client.options.getGamma().getValue() < 90.0)
-            client.options.getGamma().setValue(FeatureSettings.number("fullbright", "gamma"));
         if (enabled("autosprint") && player.input.movementForward > 0.1f && !player.horizontalCollision)
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;
@@ -342,7 +333,7 @@ public final class NightfallClient implements ClientModInitializer {
             int x = p[0], y = p[1], mw = 76, mh = 96;
             hudPanel(ctx, x, y, mw, mh, accent2);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
-                    x + 3, y + 3, 0.0f, 0.0f, mw - 6, mh - 6, 80, 100);
+                    x + 3, y + 3, 0.0f, 0.0f, mw - 6, mh - 6, 128, 128);
             ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 3, 0xD90A0712);
             ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 18, accent);
             drawText(ctx, c, "NIGHTFALL", x + 8, y + mh - 13, white);
@@ -516,7 +507,7 @@ public final class NightfallClient implements ClientModInitializer {
             hudPanel(ctx, x, y, bw, bh, accent);
             ctx.fill(x + 7, y + 9, x + 47, y + 53, 0xFF3B2444);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
-                    x + 8, y + 10, 0.0f, 0.0f, 38, 42, 80, 100);
+                    x + 8, y + 10, 0.0f, 0.0f, 38, 42, 128, 128);
             drawText(ctx, c, media.playing() ? "NOW PLAYING" : "MEDIA PLAYER", x + 54, y + 5, accent2);
             String title = media.title().isBlank() ? "Открой Spotify / Яндекс Музыку" : media.title();
             String artist = media.artist().isBlank() ? media.status() : media.artist();

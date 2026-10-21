@@ -1,9 +1,10 @@
 package dev.nightfall;
 
-/** Data-driven feature entry used by the ClickGUI. */
 public final class Feature {
     public enum Category {
-        COMBAT("Combat"), MOVEMENT("Movement"), RENDER("Render"), HUD("HUD"), MISC("Misc");
+        COMBAT("Combat"), MOVEMENT("Movement"), VISUALS("Visuals"),
+        HUD("HUD"), WORLD("World"), PLAYER("Player");
+
         private final String title;
         Category(String title) { this.title = title; }
         public String title() { return title; }

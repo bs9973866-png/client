@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "nightfall:font/exo2.ttf",
+      "file": "nightfall:exo2.ttf",
       "shift": [0.0, 0.0],
       "size": 10.0,
       "oversample": 2.0

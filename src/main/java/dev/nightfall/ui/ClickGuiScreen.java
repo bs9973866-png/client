@@ -3,6 +3,7 @@ package dev.nightfall.ui;
 import dev.nightfall.Feature;
 import dev.nightfall.FeatureRegistry;
 import dev.nightfall.FeatureBinds;
+import dev.nightfall.ui.ModuleSettingsScreen;
 import dev.nightfall.NightfallClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -72,7 +73,7 @@ public final class ClickGuiScreen extends Screen {
 
         int fx = x + 18, fy = y + ph - 47;
         ctx.fill(fx, fy, x + sw - 18, fy + 1, BORDER);
-        drawText(ctx, "ПКМ  ·  НАЗНАЧИТЬ БИНД", fx, fy + 9, MUTED);
+        drawText(ctx, "ПКМ  ·  НАСТРОЙКИ МОДУЛЯ", fx, fy + 9, MUTED);
         drawText(ctx, "CONFIG AUTO-SAVED", fx, fy + 23, 0xFF607D7D);
 
         int tx = x + sw + 18, right = x + pw - 18, contentW = right - tx;
@@ -133,7 +134,7 @@ public final class ClickGuiScreen extends Screen {
         ctx.disableScissor();
 
         if (modules.isEmpty()) drawText(ctx, "Ничего не найдено", tx + 2, listY + 8, MUTED);
-        String footer = modules.size() + " MODULES  ·  ЛКМ: ON/OFF  ·  ПКМ: BIND";
+        String footer = modules.size() + " MODULES  ·  ЛКМ: ON/OFF  ·  ПКМ: SETTINGS";
         drawText(ctx, footer, tx, footerY + 7, MUTED);
         String version = "EXO 2 UI";
         drawText(ctx, version, right - textRenderer.getWidth(UiText.of(version)), footerY + 7, 0xFF607D7D);
@@ -155,7 +156,8 @@ public final class ClickGuiScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(double mx, double my, int button) {
-        if (button != 0 && button != 1) return super.mouseClicked(mx, my, button);
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+            return super.mouseClicked(mx, my, button);
         int pw = Math.min(740, width - 28), ph = Math.min(430, height - 24);
         if (pw < 360 || ph < 200) return true;
         int x = (width - pw) / 2, y = (height - ph) / 2, sw = 158;
@@ -183,8 +185,8 @@ public final class ClickGuiScreen extends Screen {
             int bx = tx + col * (cardW + cardGap), by = listY + row * (cardH + gapY);
             if (mx >= bx && mx <= bx + cardW && my >= by && my <= by + cardH) {
                 Feature f = modules.get(i);
-                if (button == 1) {
-                    capturingBindId = f.id();
+                if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+                    client.setScreen(new ModuleSettingsScreen(f.id(), this));
                 } else {
                     NightfallClient.setFeatureEnabled(f.id(), !f.enabled());
                 }

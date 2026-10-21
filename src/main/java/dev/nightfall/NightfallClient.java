@@ -34,7 +34,7 @@ import java.util.Locale;
 public final class NightfallClient implements ClientModInitializer {
     public static final String MOD_ID = "nightfall";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.png");
+    public static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.jpg");
     private static KeyBinding clickGuiKey, zoomKey, hudEditorKey, mediaKey;
     private static double originalGamma = 1.0;
     private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks, totemDelay;
@@ -342,7 +342,7 @@ public final class NightfallClient implements ClientModInitializer {
             int x = p[0], y = p[1], mw = 76, mh = 96;
             hudPanel(ctx, x, y, mw, mh, accent2);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
-                    x + 3, y + 3, 0.0f, 0.0f, mw - 6, mh - 6, 48, 60);
+                    x + 3, y + 3, 0.0f, 0.0f, mw - 6, mh - 6, 80, 100);
             ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 3, 0xD90A0712);
             ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 18, accent);
             drawText(ctx, c, "NIGHTFALL", x + 8, y + mh - 13, white);
@@ -516,7 +516,7 @@ public final class NightfallClient implements ClientModInitializer {
             hudPanel(ctx, x, y, bw, bh, accent);
             ctx.fill(x + 7, y + 9, x + 47, y + 53, 0xFF3B2444);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
-                    x + 8, y + 10, 0.0f, 0.0f, 38, 42, 48, 60);
+                    x + 8, y + 10, 0.0f, 0.0f, 38, 42, 80, 100);
             drawText(ctx, c, media.playing() ? "NOW PLAYING" : "MEDIA PLAYER", x + 54, y + 5, accent2);
             String title = media.title().isBlank() ? "Открой Spotify / Яндекс Музыку" : media.title();
             String artist = media.artist().isBlank() ? media.status() : media.artist();

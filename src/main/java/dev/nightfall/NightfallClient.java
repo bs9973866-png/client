@@ -97,6 +97,17 @@ public final class NightfallClient implements ClientModInitializer {
         var player = client.player;
         WorldVisuals.tick(client);
 
+        // Cute, low-cost movement particles: a little trail of hearts and sparkles.
+        if (enabled("cartoonparticles") && player.age % 4 == 0
+                && player.getVelocity().horizontalLengthSquared() > 0.006) {
+            double ox = (Math.random() - 0.5) * 0.62;
+            double oz = (Math.random() - 0.5) * 0.62;
+            double py = player.getY() + 0.18 + Math.random() * 1.1;
+            var particle = player.age % 12 == 0 ? ParticleTypes.HEART : ParticleTypes.END_ROD;
+            client.world.addParticle(particle, player.getX() + ox, py, player.getZ() + oz,
+                    ox * 0.10, 0.025 + Math.random() * 0.025, oz * 0.10);
+        }
+
         if (enabled("autosprint") && player.input.movementForward > 0.1f && !player.horizontalCollision)
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;

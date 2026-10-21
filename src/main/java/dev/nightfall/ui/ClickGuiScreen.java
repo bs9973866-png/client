@@ -117,7 +117,7 @@ public final class ClickGuiScreen extends Screen {
             ctx.fill(artX - 2, artY - 2, artX + artW + 2, artY + artH + 2, BORDER);
             ctx.fill(artX, artY, artX + artW, artY + artH, PANEL);
             ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT, artX, artY,
-                    0.0f, 0.0f, artW, artH, 96, 120);
+                    0.0f, 0.0f, artW, artH, 48, 60);
             ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH, 0xD90A0712);
             ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH - 23, ACCENT);
             drawText(ctx, "STAY IN THE NIGHT", artX + 7, artY + artH - 16, TEXT);

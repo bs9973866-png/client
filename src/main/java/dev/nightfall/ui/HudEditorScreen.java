@@ -4,6 +4,7 @@ import dev.nightfall.HudLayout;
 import dev.nightfall.NightfallClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -31,6 +32,7 @@ public final class HudEditorScreen extends Screen {
         int h = net.minecraft.client.MinecraftClient.getInstance().getWindow().getScaledHeight();
         widgets = List.of(
             new Widget("watermark", "NIGHTFALL / EXO UI", "watermark", 9, 9, 142, 32),
+            new Widget("mascot", "ANIME MASCOT", "mascot", 8, h - 134, 76, 96),
             new Widget("fps", "FPS 358 / PING 45 MS", "fps", w - 143, 10, 133, 23),
             new Widget("coordinates", "X 120.0  Y 64.0  Z -20.0", "coordinates", 9, h - 30, 170, 23),
             new Widget("keystrokes", "W A S D / LMB / RMB", "keystrokes", w - 150, h - 57, 137, 43),
@@ -81,7 +83,14 @@ public final class HudEditorScreen extends Screen {
             while (!label.isEmpty() && textRenderer.getWidth(UiText.of(label)) > maxWidth) {
                 label = label.substring(0, label.length() - 2) + "…";
             }
-            text(ctx, label, x + 8, y + Math.max(5, (widget.height() - 8) / 2), active ? TEXT : MUTED);
+            if (widget.id().equals("mascot")) {
+                ctx.drawTexture(RenderLayer::getGuiTextured, NightfallClient.ANIME_PORTRAIT,
+                        x + 3, y + 3, 0.0f, 0.0f, widget.width() - 6, widget.height() - 6, 48, 60);
+                ctx.fill(x + 3, y + widget.height() - 18, x + widget.width() - 3, y + widget.height() - 3, 0xD90A0712);
+                text(ctx, "NIGHTFALL", x + 8, y + widget.height() - 13, active ? TEXT : MUTED);
+            } else {
+                text(ctx, label, x + 8, y + Math.max(5, (widget.height() - 8) / 2), active ? TEXT : MUTED);
+            }
             if (active) enabledCount++;
         }
 

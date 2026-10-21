@@ -2,8 +2,8 @@ param([string]$Action = "status")
 $ErrorActionPreference = "Stop"
 try {
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
-    $managerType = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime]
-    $manager = $managerType::RequestAsync().GetAwaiter().GetResult()
+    $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime]
+    $manager = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetAwaiter().GetResult()
     $sessions = $manager.GetSessions()
     $session = $manager.GetCurrentSession()
 

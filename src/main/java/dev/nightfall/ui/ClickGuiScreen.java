@@ -168,11 +168,16 @@ public final class ClickGuiScreen extends Screen {
             if (hovered) selectedModuleId = feature.id();
             boolean selectedCard = feature.id().equals(selectedModuleId);
             int cardColor = feature.enabled() ? CARD_ON : (hovered ? CARD_HOVER : CARD);
-            roundedFill(ctx, bx, by, g.cardW, g.cardH, cardColor, 6);
-            ctx.fill(bx + 5, by, bx + g.cardW - 5, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
-            ctx.fill(bx, by + 5, bx + 2, by + g.cardH - 5, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
+            roundedFill(ctx, bx, by, g.cardW, g.cardH, cardColor, 10);
+            float glowPulse = (float)(0.5 + 0.5 * Math.sin(System.currentTimeMillis() * 0.004 + i * 0.65));
+            int edge = feature.enabled()
+                    ? mixColor(ACCENT, ACCENT_2, glowPulse * 0.55f)
+                    : (selectedCard ? ACCENT_2 : BORDER);
+            roundedFill(ctx, bx + 4, by, g.cardW - 8, 2, feature.enabled() || selectedCard ? edge : BORDER, 1);
+            roundedFill(ctx, bx, by + 5, 3, g.cardH - 10,
+                    feature.enabled() ? edge : (selectedCard ? ACCENT_2 : BORDER), 1);
 
-            roundedFill(ctx, bx + 9, by + 9, 24, 24, 0xFF3B2444, 7);
+            roundedFill(ctx, bx + 9, by + 9, 24, 24, 0xFF3B2444, 8);
             roundedFill(ctx, bx + 12, by + 9, 18, 2, feature.enabled() ? edge : BORDER, 1);
             drawModuleGlyph(ctx, feature.id(), bx + 11, by + 11, feature.enabled() ? ACCENT : ACCENT_2);
             drawText(ctx, feature.name(), bx + 40, by + 8, TEXT);

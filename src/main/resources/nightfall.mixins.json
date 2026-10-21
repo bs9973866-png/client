@@ -5,7 +5,8 @@
   "refmap": "nightfall-refmap.json",
   "client": [
     "MinecraftClientMixin",
-    "InGameHudMixin"
+    "InGameHudMixin",
+    "VelocityPacketMixin"
   ],
   "injectors": {
     "defaultRequire": 1

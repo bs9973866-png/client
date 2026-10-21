@@ -85,7 +85,7 @@ public final class NightfallMainMenu extends Screen {
         draw(ctx, "CARTOON VISUALS", l.rightX() + 37, l.y() + 72, TEXT);
         draw(ctx, "LIVE HUD  /  PEARL FOLLOW  /  MUSIC", l.rightX() + 37, l.y() + 85, MUTED);
         roundedFill(ctx, l.rightX() + l.rightW() - 67, l.y() + 75, 54, 17, 0xFF23483F, 9);
-        roundedFill(ctx, l.rightX() + l.rightW() - 60, l.y() + 81, 5, 5, MINT, 3);
+        roundedFill(ctx, l.rightX() + l.rightW() - 60, l.y() + 81, 5, 5, (pulse << 24) | 0x009CE8DA, 3);
         draw(ctx, "READY", l.rightX() + l.rightW() - 49, l.y() + 79, MINT);
 
         menuButton(ctx, l.buttonX(), l.mainY(), l.buttonW(), l.mainH(),
@@ -105,7 +105,7 @@ public final class NightfallMainMenu extends Screen {
         // Three rounded mood cards make the feature set visible at a glance.
         int cardGap = 8;
         int featureW = Math.max(1, (l.rightW() - cardGap * 2) / 3);
-        int featureH = Math.max(48, l.hintY() - l.featureY() - 12);
+        int featureH = Math.max(64, Math.min(76, l.hintY() - l.featureY() - 12));
         moodCard(ctx, l.rightX(), l.featureY(), featureW, featureH, "CARTOON", "SOFT GLOW", ACCENT, now, 0);
         moodCard(ctx, l.rightX() + featureW + cardGap, l.featureY(), featureW, featureH, "PEARL FOLLOW", "SMART AIM", ACCENT2, now, 1);
         moodCard(ctx, l.rightX() + (featureW + cardGap) * 2, l.featureY(), featureW, featureH, "MUSIC HUD", "SYNC LYRICS", MINT, now, 2);
@@ -205,7 +205,6 @@ public final class NightfallMainMenu extends Screen {
         else if (index == 1) drawNetworkIcon(ctx, x + 16, y + h / 2 - 6 - lift, hover ? TEXT : ACCENT2);
         else drawSparkle(ctx, x + 18, y + h / 2 - 1 - lift, 5, hover ? ACCENT : ACCENT2);
 
-        int labelWidth = textRenderer.getWidth(UiText.of(label));
         centered(ctx, label, x + w / 2 + (index < 2 ? 5 : 0), y + (h - 8) / 2 - lift, primary || hover ? TEXT : MUTED);
         if (w > 220 && index < 2) {
             String hint = index == 0 ? "LOCAL WORLD" : "JOIN A SERVER";

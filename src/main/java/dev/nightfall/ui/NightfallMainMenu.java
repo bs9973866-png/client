@@ -8,43 +8,81 @@ import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
 
 public final class NightfallMainMenu extends Screen {
+    private static final int BG_TOP = 0xFF0D1217;
+    private static final int BG_BOTTOM = 0xFF151D24;
+    private static final int PANEL = 0xE519232C;
+    private static final int BORDER = 0xFF303C45;
+    private static final int TEXT = 0xFFE1E8EA;
+    private static final int MUTED = 0xFF8A9AA2;
+    private static final int ACCENT = 0xFF79BDB5;
+    private static final int ACCENT_DARK = 0xFF294641;
+
     public NightfallMainMenu() { super(Text.literal("NIGHTFALL")); }
-    @Override public void render(DrawContext ctx,int mx,int my,float delta) {
-        double t=System.currentTimeMillis()/1000.0; int w=width,h=height,cx=w/2;
-        ctx.fillGradient(0,0,w,h,0xFF080910,0xFF15101F);
-        for(int i=0;i<7;i++){int yy=(int)((h*(i/7.0)+(t*8+i*37)%h)%h);ctx.fill(0,yy,w,yy+1,0x1400D9FF);}
-        ctx.fill(cx-150,0,cx-148,h,0x18B75CFF);ctx.fill(cx+148,0,cx+150,h,0x185CE1E6);
-        ctx.fill(cx-92,h/2-113,cx+92,h/2-111,0xFFB75CFF);
-        ctx.drawTextWithShadow(textRenderer,"N",cx-3,h/2-158,0xFFB75CFF);
-        drawCentered(ctx,"NIGHTFALL",cx,h/2-136,0xFFF6F3FF);
-        drawCentered(ctx,"CUSTOM CLIENT / MINECRAFT 1.21.4",cx,h/2-119,0xFF9297AD);
-        int bw=224,bh=29,gap=7,bx=cx-bw/2,by=h/2-80;
-        button(ctx,bx,by,bw,bh,"ОДИНОЧНАЯ ИГРА",mx,my,true);
-        button(ctx,bx,by+bh+gap,bw,bh,"СЕТЕВАЯ ИГРА",mx,my,false);
-        int sw=(bw-gap)/2,sy=by+(bh+gap)*2;
-        button(ctx,bx,sy,sw,25,"НАСТРОЙКИ",mx,my,false);
-        button(ctx,bx+sw+gap,sy,sw,25,"ВЫХОД",mx,my,false);
-        drawCentered(ctx,"RIGHT SHIFT — CLICKGUI",cx,by+125,0xFF656C84);
-        ctx.drawTextWithShadow(textRenderer,"NIGHTFALL // CLIENT VISUALS",12,h-18,0xFF555C72);
-    }
-    private void drawCentered(DrawContext ctx,String s,int cx,int y,int color){ctx.drawTextWithShadow(textRenderer,s,cx-textRenderer.getWidth(s)/2,y,color);}
-    private void button(DrawContext ctx,int x,int y,int w,int h,String s,int mx,int my,boolean primary){
-        boolean over=mx>=x&&mx<=x+w&&my>=y&&my<=y+h;
-        int bg=primary?(over?0xFFF4DFFF:0xFFE9D4FA):(over?0xFF292139:0xD9181B29);
-        ctx.fill(x,y,x+w,y+h,bg);ctx.fill(x,y,x+w,y+1,primary?0xFFFFFFFF:(over?0xFFB75CFF:0xFF303348));
-        ctx.drawTextWithShadow(textRenderer,s,x+(w-textRenderer.getWidth(s))/2,y+(h-8)/2,primary?0xFF17111F:(over?0xFFF6EFFF:0xFFB0B5C9));
-    }
-    @Override public boolean mouseClicked(double mx,double my,int button){
-        if(button==0){
-            int bw=224,bh=29,gap=7,cx=width/2,bx=cx-bw/2,by=height/2-80;
-            if(inside(mx,my,bx,by,bw,bh)){client.setScreen(new SelectWorldScreen(this));return true;}
-            if(inside(mx,my,bx,by+bh+gap,bw,bh)){client.setScreen(new MultiplayerScreen(this));return true;}
-            int sw=(bw-gap)/2,sy=by+(bh+gap)*2;
-            if(inside(mx,my,bx,sy,sw,25)){client.setScreen(new OptionsScreen(this,client.options));return true;}
-            if(inside(mx,my,bx+sw+gap,sy,sw,25)){client.scheduleStop();return true;}
+
+    @Override public void render(DrawContext ctx, int mx, int my, float delta) {
+        int w = width, h = height, cx = w / 2;
+        ctx.fillGradient(0, 0, w, h, BG_TOP, BG_BOTTOM);
+        for (int i = 0; i < 5; i++) {
+            int yy = (int)((System.currentTimeMillis() / 130.0 + i * 97) % Math.max(1, h));
+            ctx.fill(0, yy, w, yy + 1, 0x0900B7AC);
         }
-        return super.mouseClicked(mx,my,button);
+        ctx.fill(0, 0, w, 2, BORDER);
+        ctx.fill(0, 0, 3, h, ACCENT_DARK);
+
+        int cardW = Math.min(430, w - 32), cardH = 300, x = cx - cardW / 2, y = h / 2 - cardH / 2;
+        ctx.fill(x + 3, y + 4, x + cardW + 3, y + cardH + 4, 0x44000000);
+        ctx.fill(x, y, x + cardW, y + cardH, PANEL);
+        ctx.fill(x, y, x + cardW, y + 1, BORDER);
+        ctx.fill(x, y, x + 2, y + cardH, ACCENT);
+        ctx.fill(x + 22, y + 24, x + 56, y + 58, ACCENT_DARK);
+        centered(ctx, "N", x + 39, y + 36, ACCENT);
+        draw(ctx, "NIGHTFALL", x + 68, y + 27, TEXT);
+        draw(ctx, "CLIENT  /  MINECRAFT 1.21.4", x + 68, y + 44, MUTED);
+        ctx.fill(x + 22, y + 72, x + cardW - 22, y + 73, BORDER);
+        centered(ctx, "A QUIET, CLEAN CLIENT UI", cx, y + 88, MUTED);
+
+        int bw = Math.min(330, cardW - 44), bh = 31, gap = 8, bx = cx - bw / 2, by = y + 116;
+        button(ctx, bx, by, bw, bh, "ОДИНОЧНАЯ ИГРА", mx, my, true);
+        button(ctx, bx, by + bh + gap, bw, bh, "СЕТЕВАЯ ИГРА", mx, my, false);
+        int smallW = (bw - gap) / 2, sy = by + (bh + gap) * 2;
+        button(ctx, bx, sy, smallW, 27, "НАСТРОЙКИ", mx, my, false);
+        button(ctx, bx + smallW + gap, sy, smallW, 27, "ВЫХОД", mx, my, false);
+
+        centered(ctx, "RIGHT SHIFT  ·  CLICKGUI", cx, y + 260, MUTED);
+        draw(ctx, "NIGHTFALL", 12, h - 18, 0xFF687982);
+        String build = "EXO 2 UI  /  FABRIC";
+        draw(ctx, build, w - textRenderer.getWidth(UiText.of(build)) - 12, h - 18, 0xFF687982);
     }
-    private boolean inside(double mx,double my,int x,int y,int w,int h){return mx>=x&&mx<=x+w&&my>=y&&my<=y+h;}
-    @Override public boolean shouldCloseOnEsc(){return false;}
+
+    private void draw(DrawContext ctx, String value, int x, int y, int color) {
+        ctx.drawTextWithShadow(textRenderer, UiText.of(value), x, y, color);
+    }
+    private void centered(DrawContext ctx, String value, int cx, int y, int color) {
+        ctx.drawTextWithShadow(textRenderer, UiText.of(value), cx - textRenderer.getWidth(UiText.of(value)) / 2, y, color);
+    }
+    private void button(DrawContext ctx, int x, int y, int w, int h, String label, int mx, int my, boolean primary) {
+        boolean hover = mx >= x && mx <= x + w && my >= y && my <= y + h;
+        int bg = primary ? (hover ? 0xFFB0D5CF : 0xFF9CC9C1) : (hover ? 0xFF263641 : 0xFF1C2730);
+        ctx.fill(x, y, x + w, y + h, bg);
+        ctx.fill(x, y, x + w, y + 1, primary ? 0xFFE5F6F2 : (hover ? ACCENT : BORDER));
+        int color = primary ? 0xFF15211F : (hover ? TEXT : 0xFFB4C0C4);
+        centered(ctx, label, x + w / 2, y + (h - 8) / 2, color);
+    }
+
+    @Override public boolean mouseClicked(double mx, double my, int button) {
+        if (button == 0) {
+            int cardW = Math.min(430, width - 32), cardH = 300, x = width / 2 - cardW / 2, y = height / 2 - cardH / 2;
+            int bw = Math.min(330, cardW - 44), bh = 31, gap = 8, bx = width / 2 - bw / 2, by = y + 116;
+            if (inside(mx, my, bx, by, bw, bh)) { client.setScreen(new SelectWorldScreen(this)); return true; }
+            if (inside(mx, my, bx, by + bh + gap, bw, bh)) { client.setScreen(new MultiplayerScreen(this)); return true; }
+            int smallW = (bw - gap) / 2, sy = by + (bh + gap) * 2;
+            if (inside(mx, my, bx, sy, smallW, 27)) { client.setScreen(new OptionsScreen(this, client.options)); return true; }
+            if (inside(mx, my, bx + smallW + gap, sy, smallW, 27)) { client.scheduleStop(); return true; }
+        }
+        return super.mouseClicked(mx, my, button);
+    }
+    private boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+    @Override public boolean shouldCloseOnEsc() { return false; }
 }

@@ -74,8 +74,8 @@ public final class ClickGuiScreen extends Screen {
         }
 
         int x = g.x, y = g.y, right = x + g.pw, bottom = y + g.ph;
-        ctx.fill(x + 4, y + 5, right + 4, bottom + 5, 0x65000000);
-        ctx.fill(x, y, right, bottom, BG);
+        roundedFill(ctx, x + 4, y + 5, g.pw, g.ph, 0x65000000, 12);
+        roundedFill(ctx, x, y, g.pw, g.ph, BG, 10);
         ctx.fill(x, y, right, y + 1, BORDER);
         ctx.fill(x, y, x + 3, bottom, ACCENT);
         ctx.fill(x + 3, y + 1, x + g.sideW, bottom - 1, SIDEBAR);
@@ -95,7 +95,7 @@ public final class ClickGuiScreen extends Screen {
             int cy = y + 76 + i * 43;
             boolean active = category == selected;
             if (active) {
-                ctx.fill(x + 10, cy, x + g.sideW - 10, cy + 32, ACCENT_DARK);
+                roundedFill(ctx, x + 10, cy, g.sideW - 20, 32, ACCENT_DARK, 5);
                 ctx.fill(x + 10, cy, x + 13, cy + 32, ACCENT);
                 ctx.fill(x + 13, cy + 1, x + g.sideW - 11, cy + 2, 0xFF79405F);
             }
@@ -134,7 +134,7 @@ public final class ClickGuiScreen extends Screen {
         drawText(ctx, selected.title().toUpperCase(Locale.ROOT), mainX, y + 17, ACCENT);
         drawText(ctx, "Выбери модуль. ПКМ открывает его настройки.", mainX, y + 34, MUTED);
         int searchY = y + 52, searchW = Math.min(280, g.mainRight - mainX - 95);
-        ctx.fill(mainX, searchY, mainX + searchW, searchY + 25, PANEL);
+        roundedFill(ctx, mainX, searchY, searchW, 25, PANEL, 5);
         ctx.fill(mainX, searchY, mainX + searchW, searchY + 1, BORDER);
         drawText(ctx, search.isBlank() ? "ПОИСК МОДУЛЕЙ..." : "SEARCH  " + search,
                 mainX + 9, searchY + 9, search.isBlank() ? 0xFF8F7798 : TEXT);
@@ -161,9 +161,9 @@ public final class ClickGuiScreen extends Screen {
             if (hovered) selectedModuleId = feature.id();
             boolean selectedCard = feature.id().equals(selectedModuleId);
             int cardColor = feature.enabled() ? CARD_ON : (hovered ? CARD_HOVER : CARD);
-            ctx.fill(bx, by, bx + g.cardW, by + g.cardH, cardColor);
-            ctx.fill(bx, by, bx + g.cardW, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
-            ctx.fill(bx, by + 1, bx + 2, by + g.cardH - 1, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
+            roundedFill(ctx, bx, by, g.cardW, g.cardH, cardColor, 6);
+            ctx.fill(bx + 5, by, bx + g.cardW - 5, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
+            ctx.fill(bx, by + 5, bx + 2, by + g.cardH - 5, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
 
             ctx.fill(bx + 9, by + 9, bx + 33, by + 33, 0xFF3B2444);
             ctx.fill(bx + 9, by + 9, bx + 33, by + 10, feature.enabled() ? ACCENT : BORDER);
@@ -177,9 +177,9 @@ public final class ClickGuiScreen extends Screen {
                     FeatureBinds.isBound(feature.id()) ? ACCENT_2 : 0xFF886F90);
 
             int tx = bx + g.cardW - 42, ty = by + 8;
-            ctx.fill(tx, ty, tx + 31, ty + 15, feature.enabled() ? ACCENT_DARK : 0xFF3A2A41);
-            ctx.fill(tx + (feature.enabled() ? 17 : 3), ty + 3, tx + (feature.enabled() ? 27 : 13), ty + 12,
-                    feature.enabled() ? ACCENT : 0xFF9A83A4);
+            roundedFill(ctx, tx, ty, 31, 15, feature.enabled() ? ACCENT_DARK : 0xFF3A2A41, 7);
+            roundedFill(ctx, tx + (feature.enabled() ? 17 : 3), ty + 3, 10, 9,
+                    feature.enabled() ? ACCENT : 0xFF9A83A4, 4);
             drawText(ctx, feature.enabled() ? "ON" : "OFF", bx + g.cardW - 41, by + 49,
                     feature.enabled() ? ACCENT : MUTED);
         }
@@ -191,7 +191,7 @@ public final class ClickGuiScreen extends Screen {
 
         // Live module detail card on the right.
         int dx = g.mainRight + 13, dy = g.listY, dw = x + g.pw - 15 - dx, dh = g.footerY - g.listY - 3;
-        ctx.fill(dx, dy, dx + dw, dy + dh, PANEL);
+        roundedFill(ctx, dx, dy, dw, dh, PANEL, 7);
         ctx.fill(dx, dy, dx + dw, dy + 1, BORDER);
         ctx.fill(dx, dy, dx + 2, dy + dh, ACCENT);
         drawText(ctx, "MODULE DETAILS", dx + 12, dy + 12, ACCENT_2);
@@ -255,6 +255,14 @@ public final class ClickGuiScreen extends Screen {
                         || f.id().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
                         || f.description().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toList());
+    }
+
+    private void roundedFill(DrawContext ctx, int x, int y, int width, int height, int color, int radius) {
+        if (width <= 0 || height <= 0) return;
+        for (int row = 0; row < height; row++) {
+            int inset = Math.max(0, radius - Math.min(row, height - 1 - row));
+            ctx.fill(x + inset, y + row, x + width - inset, y + row + 1, color);
+        }
     }
 
     private void drawCategoryGlyph(DrawContext ctx, Feature.Category category, int x, int y, int color) {

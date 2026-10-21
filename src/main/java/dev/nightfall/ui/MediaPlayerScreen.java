@@ -30,7 +30,7 @@ public final class MediaPlayerScreen extends Screen {
         String artist = state.artist().isBlank() ? state.status() : state.artist();
 
         ctx.fill(x + 20, y + 59, x + 99, y + 143, 0xFF3B2444);
-        ctx.drawTexture(RenderLayer::getGuiTextured, PORTRAIT, x + 21, y + 60, 0.0f, 0.0f, 77, 82, 80, 100);
+        ctx.drawTexture(RenderLayer::getGuiTextured, PORTRAIT, x + 21, y + 60, 0.0f, 0.0f, 77, 82, 128, 128);
         draw(ctx, state.playing() ? "NOW PLAYING" : "MEDIA SESSION", x + 110, y + 61, 0xFFBE8BFF);
         draw(ctx, fit(title, pw - 130), x + 110, y + 81, 0xFFFFF0FE);
         draw(ctx, fit(artist, pw - 130), x + 110, y + 99, 0xFFB39AB8);

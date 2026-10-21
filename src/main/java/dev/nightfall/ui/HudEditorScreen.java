@@ -85,7 +85,7 @@ public final class HudEditorScreen extends Screen {
             }
             if (widget.id().equals("mascot")) {
                 ctx.drawTexture(RenderLayer::getGuiTextured, NightfallClient.ANIME_PORTRAIT,
-                        x + 3, y + 3, 0.0f, 0.0f, widget.width() - 6, widget.height() - 6, 80, 100);
+                        x + 3, y + 3, 0.0f, 0.0f, widget.width() - 6, widget.height() - 6, 128, 128);
                 ctx.fill(x + 3, y + widget.height() - 18, x + widget.width() - 3, y + widget.height() - 3, 0xD90A0712);
                 text(ctx, "NIGHTFALL", x + 8, y + widget.height() - 13, active ? TEXT : MUTED);
             } else {

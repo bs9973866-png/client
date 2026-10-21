@@ -1,6 +1,8 @@
 package dev.nightfall;
 
 import dev.nightfall.ui.ClickGuiScreen;
+import dev.nightfall.ui.HudEditorScreen;
+import dev.nightfall.ui.MediaPlayerScreen;
 import dev.nightfall.ui.UiText;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -30,7 +32,7 @@ import java.util.Locale;
 public final class NightfallClient implements ClientModInitializer {
     public static final String MOD_ID = "nightfall";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static KeyBinding clickGuiKey, zoomKey;
+    private static KeyBinding clickGuiKey, zoomKey, hudEditorKey, mediaKey;
     private static double originalGamma = 1.0;
     private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks, totemDelay;
     private static long lastHitTime;
@@ -42,7 +44,13 @@ public final class NightfallClient implements ClientModInitializer {
                 "key.nightfall.clickgui", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.nightfall"));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.nightfall.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, "category.nightfall"));
+        hudEditorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.nightfall.hud_editor", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_CONTROL, "category.nightfall"));
+        mediaKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.nightfall.media_player", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, "category.nightfall"));
         ConfigManager.load();
+        HudLayout.load();
+        MusicManager.init();
         WorldVisuals.register();
         ClientTickEvents.END_CLIENT_TICK.register(NightfallClient::tick);
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderHud(context));
@@ -75,6 +83,12 @@ public final class NightfallClient implements ClientModInitializer {
     private static void tick(MinecraftClient client) {
         while (clickGuiKey.wasPressed()) {
             client.setScreen(client.currentScreen instanceof ClickGuiScreen ? null : new ClickGuiScreen());
+        }
+        while (hudEditorKey.wasPressed()) {
+            client.setScreen(client.currentScreen instanceof HudEditorScreen ? null : new HudEditorScreen());
+        }
+        while (mediaKey.wasPressed()) {
+            client.setScreen(client.currentScreen instanceof MediaPlayerScreen ? null : new MediaPlayerScreen());
         }
         if (client.player == null || client.world == null) {
             restoreZoom(client);

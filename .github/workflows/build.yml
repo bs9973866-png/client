@@ -1,0 +1,42 @@
+name: Build NIGHTFALL
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle 8.12
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.12'
+
+      - name: Restore mod icon
+        run: |
+          mkdir -p src/main/resources/assets/nightfall
+          base64 --decode icons/nightfall-icon-64.png.b64 > src/main/resources/assets/nightfall/icon.png
+
+      - name: Build mod
+        run: gradle build --no-daemon
+
+      - name: Upload mod JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightfall-minecraft-1.21.4
+          path: build/libs/nightfall-1.0.0.jar
+          if-no-files-found: error

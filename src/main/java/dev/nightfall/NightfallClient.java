@@ -49,6 +49,7 @@ public final class NightfallClient implements ClientModInitializer {
         mediaKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.nightfall.media_player", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, "category.nightfall"));
         ConfigManager.load();
+        FeatureBinds.load();
         HudLayout.load();
         MusicManager.init();
         WorldVisuals.register();
@@ -90,6 +91,7 @@ public final class NightfallClient implements ClientModInitializer {
         while (mediaKey.wasPressed()) {
             client.setScreen(client.currentScreen instanceof MediaPlayerScreen ? null : new MediaPlayerScreen());
         }
+        FeatureBinds.tick(client);
         if (client.player == null || client.world == null) {
             restoreZoom(client);
             WorldVisuals.tick(client);
@@ -104,18 +106,7 @@ public final class NightfallClient implements ClientModInitializer {
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;
         if (enabled("antifire") && player.isOnFire()) player.extinguish();
-        if (enabled("autototem") && client.currentScreen == null && player.getHealth() <= 12.0f
-                && !player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) && ++totemDelay % 8 == 0
-                && client.interactionManager != null) {
-            for (int i = 0; i < 36; i++) {
-                if (player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
-                    int screenSlot = i < 9 ? i + 36 : i;
-                    client.interactionManager.clickSlot(player.currentScreenHandler.syncId, screenSlot, 40,
-                            SlotActionType.SWAP, player);
-                    break;
-                }
-            }
-        }
+        maintainTotem(client, player);
 
         if (enabled("speed") && player.isOnGround() && player.input.movementForward != 0.0f) {
             Vec3d v = player.getVelocity();
@@ -152,14 +143,27 @@ public final class NightfallClient implements ClientModInitializer {
                 LivingEntity target = findTarget(client, range, 0.88);
                 if (target != null) gentlyAim(player, target);
             }
-            auraTicks++; triggerTicks++;
-            int delay = enabled("killaura") ? 6 : 0;
-            if (enabled("killaura") && auraTicks >= delay) {
-                LivingEntity target = findTarget(client, enabled("reach") ? 6.0 : 3.8, 0.965);
-                if (target != null && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
-                    attack(client, target); auraTicks = 0;
+
+            triggerTicks++;
+            if (enabled("killaura")) {
+                auraTicks++;
+                double auraRange = enabled("reach") ? 5.0 : 3.6;
+                LivingEntity target = findAuraTarget(client, auraRange);
+                if (target != null) {
+                    boolean aligned = rotateToTarget(player, target, 42.0f, 30.0f);
+                    if (auraTicks >= 2 && aligned
+                            && player.squaredDistanceTo(target) <= auraRange * auraRange
+                            && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
+                        attack(client, target);
+                        auraTicks = 0;
+                    }
+                } else {
+                    auraTicks = 0;
                 }
+            } else {
+                auraTicks = 0;
             }
+
             if (enabled("triggerbot") && triggerTicks >= 2 && client.crosshairTarget instanceof EntityHitResult hit
                     && hit.getEntity() instanceof LivingEntity target && target != player && target.isAlive()
                     && shouldTarget(target) && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
@@ -192,6 +196,63 @@ public final class NightfallClient implements ClientModInitializer {
                     && entity.getBoundingBox().getCenter().subtract(player.getEyePos()).normalize().dotProduct(look) >= minDot)
             .stream().filter(LivingEntity.class::isInstance).map(LivingEntity.class::cast)
             .min(Comparator.comparingDouble(player::squaredDistanceTo)).orElse(null);
+    }
+
+    private static void maintainTotem(MinecraftClient client, net.minecraft.client.network.ClientPlayerEntity player) {
+        if (!enabled("autototem") || client.currentScreen != null || client.interactionManager == null) {
+            totemDelay = 0;
+            return;
+        }
+        if (player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING)) {
+            totemDelay = 0;
+            return;
+        }
+        if (++totemDelay < 5) return;
+        totemDelay = 0;
+        for (int i = 0; i < 36; i++) {
+            if (player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
+                int screenSlot = i < 9 ? i + 36 : i;
+                client.interactionManager.clickSlot(player.currentScreenHandler.syncId, screenSlot, 40,
+                        SlotActionType.SWAP, player);
+                return;
+            }
+        }
+    }
+
+    /** Selects a visible target independently of the crosshair, so KillAura can acquire it on its own. */
+    private static LivingEntity findAuraTarget(MinecraftClient client, double range) {
+        var player = client.player;
+        if (player == null || client.world == null) return null;
+        Vec3d look = player.getRotationVec(1.0f).normalize();
+        return client.world.getOtherEntities(player, player.getBoundingBox().expand(range), entity ->
+                        entity instanceof LivingEntity living && living.isAlive() && !living.isSpectator()
+                                && shouldTarget(living) && player.canSee(living)
+                                && player.squaredDistanceTo(living) <= range * range)
+                .stream()
+                .filter(LivingEntity.class::isInstance)
+                .map(LivingEntity.class::cast)
+                .min(Comparator.comparingDouble(target -> {
+                    Vec3d direction = target.getBoundingBox().getCenter().subtract(player.getEyePos()).normalize();
+                    double dot = Math.max(-1.0, Math.min(1.0, look.dotProduct(direction)));
+                    double angularCost = 1.0 - dot;
+                    return angularCost * 2.4 + player.squaredDistanceTo(target) * 0.12;
+                }))
+                .orElse(null);
+    }
+
+    /** Smoothly turns the player's view toward the selected entity and reports when aim is close enough. */
+    private static boolean rotateToTarget(net.minecraft.client.network.ClientPlayerEntity player,
+                                          LivingEntity target, float maxYawStep, float maxPitchStep) {
+        Vec3d delta = target.getBoundingBox().getCenter().subtract(player.getEyePos());
+        double horizontal = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
+        float targetYaw = (float) (Math.toDegrees(Math.atan2(delta.z, delta.x)) - 90.0);
+        float targetPitch = (float) -Math.toDegrees(Math.atan2(delta.y, horizontal));
+        float yawDelta = MathHelper.wrapDegrees(targetYaw - player.getYaw());
+        float pitchDelta = MathHelper.wrapDegrees(targetPitch - player.getPitch());
+        player.setYaw(player.getYaw() + MathHelper.clamp(yawDelta, -maxYawStep, maxYawStep));
+        player.setPitch(MathHelper.clamp(player.getPitch() + MathHelper.clamp(pitchDelta, -maxPitchStep, maxPitchStep), -90.0f, 90.0f));
+        return Math.abs(MathHelper.wrapDegrees(targetYaw - player.getYaw())) <= 8.0f
+                && Math.abs(targetPitch - player.getPitch()) <= 8.0f;
     }
 
     private static void gentlyAim(net.minecraft.client.network.ClientPlayerEntity player, LivingEntity target) {

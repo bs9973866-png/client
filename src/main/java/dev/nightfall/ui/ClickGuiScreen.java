@@ -2,6 +2,7 @@ package dev.nightfall.ui;
 
 import dev.nightfall.Feature;
 import dev.nightfall.FeatureRegistry;
+import dev.nightfall.FeatureBinds;
 import dev.nightfall.NightfallClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -16,18 +17,19 @@ public final class ClickGuiScreen extends Screen {
     private Feature.Category selected = Feature.Category.VISUALS;
     private String search = "";
     private int scroll;
+    private String capturingBindId;
     private final long openedAt = System.currentTimeMillis();
 
-    private static final int BG = 0xF111720D;
-    private static final int SIDEBAR = 0xFF151C26;
-    private static final int PANEL = 0xFF1A222D;
-    private static final int CARD = 0xFF202A35;
-    private static final int CARD_HOVER = 0xFF26333E;
-    private static final int BORDER = 0xFF303D48;
-    private static final int TEXT = 0xFFDCE5E8;
-    private static final int MUTED = 0xFF8797A0;
-    private static final int ACCENT = 0xFF79BDB5;
-    private static final int ACCENT_DARK = 0xFF294641;
+    private static final int BG = 0xF10A0911;
+    private static final int SIDEBAR = 0xFF11101A;
+    private static final int PANEL = 0xFF191622;
+    private static final int CARD = 0xFF211D2B;
+    private static final int CARD_HOVER = 0xFF2D263A;
+    private static final int BORDER = 0xFF393246;
+    private static final int TEXT = 0xFFF1ECF7;
+    private static final int MUTED = 0xFF9991A8;
+    private static final int ACCENT = 0xFFB98BFF;
+    private static final int ACCENT_DARK = 0xFF362747;
 
     public ClickGuiScreen() { super(Text.literal("NIGHTFALL")); }
 
@@ -60,14 +62,17 @@ public final class ClickGuiScreen extends Screen {
                 ctx.fill(x + 10, cy - 6, x + sw - 10, cy + 19, ACCENT_DARK);
                 ctx.fill(x + 10, cy - 6, x + 12, cy + 19, ACCENT);
             }
-            drawText(ctx, category.title(), x + 22, cy + 1, active ? TEXT : MUTED);
+            String code = categoryCode(category);
+            ctx.fill(x + 17, cy - 3, x + 35, cy + 15, active ? ACCENT_DARK : 0xFF211E2B);
+            drawText(ctx, code, x + 19, cy + 2, active ? ACCENT : MUTED);
+            drawText(ctx, category.title(), x + 42, cy + 1, active ? TEXT : MUTED);
             String count = Integer.toString(FeatureRegistry.in(category).size());
             drawText(ctx, count, x + sw - 23 - textRenderer.getWidth(UiText.of(count)), cy + 1, active ? ACCENT : 0xFF596771);
         }
 
         int fx = x + 18, fy = y + ph - 47;
         ctx.fill(fx, fy, x + sw - 18, fy + 1, BORDER);
-        drawText(ctx, "RIGHT SHIFT  ·  CLOSE", fx, fy + 9, MUTED);
+        drawText(ctx, "ПКМ  ·  НАЗНАЧИТЬ БИНД", fx, fy + 9, MUTED);
         drawText(ctx, "CONFIG AUTO-SAVED", fx, fy + 23, 0xFF607D7D);
 
         int tx = x + sw + 18, right = x + pw - 18, contentW = right - tx;
@@ -78,7 +83,8 @@ public final class ClickGuiScreen extends Screen {
         int searchY = y + 51, searchW = Math.min(290, contentW);
         ctx.fill(tx, searchY, tx + searchW, searchY + 24, PANEL);
         ctx.fill(tx, searchY, tx + searchW, searchY + 1, BORDER);
-        drawText(ctx, search.isEmpty() ? "ПОИСК МОДУЛЕЙ..." : "> " + search, tx + 9, searchY + 8, search.isEmpty() ? 0xFF61717B : TEXT);
+        String searchLabel = capturingBindId != null ? "НАЖМИ КЛАВИШУ ДЛЯ БИНДА..." : (search.isEmpty() ? "ПОИСК МОДУЛЕЙ..." : "> " + search);
+        drawText(ctx, searchLabel, tx + 9, searchY + 8, capturingBindId != null ? ACCENT : (search.isEmpty() ? 0xFF817890 : TEXT));
         String state = FeatureRegistry.all().stream().filter(Feature::enabled).count() + " ACTIVE";
         drawText(ctx, state, right - textRenderer.getWidth(UiText.of(state)), searchY + 8, ACCENT);
 
@@ -119,15 +125,29 @@ public final class ClickGuiScreen extends Screen {
             int maxChars = Math.max(12, (cardW - 18) / 5);
             if (desc.length() > maxChars) desc = desc.substring(0, maxChars - 1) + "…";
             drawText(ctx, desc, bx + 10, by + 31, MUTED);
-            drawText(ctx, feature.id().toUpperCase(Locale.ROOT), bx + 10, by + 46, 0xFF5B6B76);
+            boolean capturing = feature.id().equals(capturingBindId);
+            String bindLabel = capturing ? "НАЖМИ КЛАВИШУ..." : "BIND  " + FeatureBinds.label(feature.id());
+            int bindColor = capturing ? ACCENT : (FeatureBinds.isBound(feature.id()) ? 0xFFCBA8FF : 0xFF777087);
+            drawText(ctx, bindLabel, bx + 10, by + 46, bindColor);
         }
         ctx.disableScissor();
 
         if (modules.isEmpty()) drawText(ctx, "Ничего не найдено", tx + 2, listY + 8, MUTED);
-        String footer = modules.size() + " MODULES  ·  CLICK CARD TO TOGGLE";
+        String footer = modules.size() + " MODULES  ·  ЛКМ: ON/OFF  ·  ПКМ: BIND";
         drawText(ctx, footer, tx, footerY + 7, MUTED);
         String version = "EXO 2 UI";
         drawText(ctx, version, right - textRenderer.getWidth(UiText.of(version)), footerY + 7, 0xFF607D7D);
+    }
+
+    private String categoryCode(Feature.Category category) {
+        return switch (category) {
+            case COMBAT -> "CB";
+            case MOVEMENT -> "MV";
+            case VISUALS -> "VS";
+            case HUD -> "HUD";
+            case WORLD -> "WR";
+            case PLAYER -> "PL";
+        };
     }
 
     private void drawText(DrawContext ctx, String value, int x, int y, int color) {
@@ -135,7 +155,7 @@ public final class ClickGuiScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(double mx, double my, int button) {
-        if (button != 0) return super.mouseClicked(mx, my, button);
+        if (button != 0 && button != 1) return super.mouseClicked(mx, my, button);
         int pw = Math.min(740, width - 28), ph = Math.min(430, height - 24);
         if (pw < 360 || ph < 200) return true;
         int x = (width - pw) / 2, y = (height - ph) / 2, sw = 158;
@@ -163,7 +183,11 @@ public final class ClickGuiScreen extends Screen {
             int bx = tx + col * (cardW + cardGap), by = listY + row * (cardH + gapY);
             if (mx >= bx && mx <= bx + cardW && my >= by && my <= by + cardH) {
                 Feature f = modules.get(i);
-                NightfallClient.setFeatureEnabled(f.id(), !f.enabled());
+                if (button == 1) {
+                    capturingBindId = f.id();
+                } else {
+                    NightfallClient.setFeatureEnabled(f.id(), !f.enabled());
+                }
                 return true;
             }
         }
@@ -185,6 +209,20 @@ public final class ClickGuiScreen extends Screen {
     }
 
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (capturingBindId != null) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                capturingBindId = null;
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE) {
+                FeatureBinds.set(capturingBindId, GLFW.GLFW_KEY_UNKNOWN);
+                capturingBindId = null;
+                return true;
+            }
+            FeatureBinds.set(capturingBindId, keyCode);
+            capturingBindId = null;
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT || keyCode == GLFW.GLFW_KEY_ESCAPE) {
             close();
             return true;

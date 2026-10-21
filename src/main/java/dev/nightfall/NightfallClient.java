@@ -337,6 +337,17 @@ public final class NightfallClient implements ClientModInitializer {
         if (enabled("hitpulse") && c.player.hurtTime > 0)
             ctx.fill(0, 0, w, h, (Math.min(20, c.player.hurtTime * 2) << 24) | 0x006A1C8A);
 
+        if (enabled("mascot")) {
+            int[] p = HudLayout.get("mascot", 8, h - 134);
+            int x = p[0], y = p[1], mw = 76, mh = 96;
+            hudPanel(ctx, x, y, mw, mh, accent2);
+            ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
+                    x + 3, y + 3, 0.0f, 0.0f, mw - 6, mh - 6, 48, 60);
+            ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 3, 0xD90A0712);
+            ctx.fill(x + 3, y + mh - 19, x + mw - 3, y + mh - 18, accent);
+            drawText(ctx, c, "NIGHTFALL", x + 8, y + mh - 13, white);
+        }
+
         if (enabled("watermark")) {
             int[] p = HudLayout.get("watermark", 9, 9);
             int x = p[0], y = p[1];

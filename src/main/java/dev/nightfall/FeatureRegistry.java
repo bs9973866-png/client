@@ -61,6 +61,7 @@ public final class FeatureRegistry {
         add("speedometer", "Speedometer", "Текущая горизонтальная скорость.", HUD, false);
         add("potionhud", "Effects HUD", "Активные эффекты и оставшееся время.", HUD, false);
         add("mediaplayer", "Media Player", "Spotify / Яндекс Музыка: трек, прогресс и управление.", HUD, false);
+        add("mascot", "Anime Mascot", "Аниме-иллюстрация в HUD в стиле NIGHTFALL.", HUD, true);
 
         // Player / world utility
         add("autototem", "Auto Totem", "Перекладывает тотем в левую руку при низком HP.", PLAYER, false);

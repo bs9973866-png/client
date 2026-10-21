@@ -138,7 +138,7 @@ public final class NightfallClient implements ClientModInitializer {
         // The local singleplayer-only guard has intentionally been removed: multiplayer servers may
         // reject client-side automation or enforce their own reach/attack validation.
         if (client.currentScreen == null) {
-            if (enabled("aimassist")) {
+            if (enabled("aimassist") && !enabled("killaura")) {
                 double range = enabled("reach") ? 6.0 : 4.5;
                 LivingEntity target = findTarget(client, range, 0.88);
                 if (target != null) gentlyAim(player, target);
@@ -416,6 +416,9 @@ public final class NightfallClient implements ClientModInitializer {
         }
         if (enabled("worldlyrics")) {
             String lyric = MusicManager.currentLyric();
+            if (lyric.isBlank() && !MusicManager.state().title().isBlank()) {
+                lyric = MusicManager.lyricError().isBlank() ? "СИНХРОНИЗАЦИЯ ТЕКСТА..." : MusicManager.lyricError();
+            }
             if (!lyric.isBlank()) {
                 int[] p = HudLayout.get("worldlyrics", w / 2 - 175, h - 57); int x = p[0], y = p[1], bw = 350;
                 String line = lyric;

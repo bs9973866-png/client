@@ -15,8 +15,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
@@ -32,7 +32,7 @@ public final class NightfallClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     private static KeyBinding clickGuiKey, zoomKey;
     private static double originalGamma = 1.0;
-    private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks;
+    private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks, totemDelay;
     private static long lastHitTime;
     private static boolean zoomWasActive, jumpWasPressed;
 
@@ -90,6 +90,18 @@ public final class NightfallClient implements ClientModInitializer {
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;
         if (enabled("antifire") && player.isOnFire()) player.extinguish();
+        if (enabled("autototem") && client.currentScreen == null && player.getHealth() <= 12.0f
+                && !player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) && ++totemDelay % 8 == 0
+                && client.interactionManager != null) {
+            for (int i = 0; i < 36; i++) {
+                if (player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
+                    int screenSlot = i < 9 ? i + 36 : i;
+                    client.interactionManager.clickSlot(player.currentScreenHandler.syncId, screenSlot, 40,
+                            SlotActionType.SWAP, player);
+                    break;
+                }
+            }
+        }
 
         if (enabled("speed") && player.isOnGround() && player.input.movementForward != 0.0f) {
             Vec3d v = player.getVelocity();

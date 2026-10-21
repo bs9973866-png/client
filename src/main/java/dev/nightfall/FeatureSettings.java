@@ -36,7 +36,12 @@ public final class FeatureSettings {
         add("killaura", "attackDelay", "Задержка атаки", Type.SLIDER, 1, 10, 1, List.of(), 3.0);
         add("autototem", "swapDelay", "Задержка замены", Type.SLIDER, 1, 10, 1, List.of(), 5.0);
         add("zoom", "fov", "Поле зрения", Type.SLIDER, 10, 50, 1, List.of(), 28.0);
-        add("fullbright", "gamma", "Яркость", Type.SLIDER, 10, 100, 1, List.of(), 100.0);
+        add("fullbright", "gamma", "Сила подсветки", Type.SLIDER, 50, 100, 5, List.of(), 100.0);
+        add("shaders", "preset", "Профиль эффектов", Type.MODE, 0, 0, 0,
+                List.of("Violet Dream", "Sakura", "Sunset", "Aqua", "Cinema"), "Violet Dream");
+        add("shaders", "intensity", "Интенсивность", Type.SLIDER, 20, 100, 5, List.of(), 80.0);
+        add("pearlfollow", "range", "Дальность реакции", Type.SLIDER, 8, 48, 2, List.of(), 32.0);
+        add("pearlfollow", "cooldown", "Задержка броска", Type.SLIDER, 5, 60, 5, List.of(), 20.0);
     }
 
     private FeatureSettings() {}

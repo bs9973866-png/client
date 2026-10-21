@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "nightfall",
+  "version": "${version}",
+  "name": "NIGHTFALL",
+  "description": "Client-side visual and utility client for Minecraft 1.21.4.",
+  "authors": ["NIGHTFALL"],
+  "license": "MIT",
+  "icon": "assets/nightfall/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.nightfall.NightfallClient"]
+  },
+  "mixins": ["nightfall.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

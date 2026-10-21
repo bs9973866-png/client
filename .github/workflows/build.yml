@@ -26,10 +26,11 @@ jobs:
         with:
           gradle-version: '8.12'
 
-      - name: Restore mod icon
+      - name: Restore mod icon and download licensed custom font
         run: |
-          mkdir -p src/main/resources/assets/nightfall
+          mkdir -p src/main/resources/assets/nightfall/font
           base64 --decode icons/nightfall-icon-64.png.b64 > src/main/resources/assets/nightfall/icon.png
+          curl --fail --location --retry 3 "https://raw.githubusercontent.com/google/fonts/main/ofl/exo2/Exo2%5Bwght%5D.ttf" -o src/main/resources/assets/nightfall/font/exo2.ttf
 
       - name: Build mod
         run: gradle build --no-daemon

@@ -31,8 +31,9 @@ jobs:
           mkdir -p src/main/resources/assets/nightfall/font
           base64 --decode icons/nightfall-icon-64.png.b64 > src/main/resources/assets/nightfall/icon.png
           curl --fail --location --retry 3 "https://raw.githubusercontent.com/google/fonts/main/ofl/exo2/Exo2%5Bwght%5D.ttf" -o /tmp/exo2-variable.ttf
-          python3 -m pip install --user fonttools
-          python3 -m fontTools.varLib.instancer /tmp/exo2-variable.ttf wght=400 --output=src/main/resources/assets/nightfall/font/exo2.ttf
+          python3 -m venv /tmp/fonttools-venv
+          /tmp/fonttools-venv/bin/pip install --disable-pip-version-check fonttools
+          /tmp/fonttools-venv/bin/python -m fontTools.varLib.instancer /tmp/exo2-variable.ttf wght=400 --output=src/main/resources/assets/nightfall/font/exo2.ttf
 
       - name: Build mod
         run: gradle build --no-daemon

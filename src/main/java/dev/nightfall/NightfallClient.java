@@ -40,6 +40,7 @@ public final class NightfallClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         FeatureRegistry.init();
+        FeatureSettings.load();
         clickGuiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.nightfall.clickgui", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.nightfall"));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -76,7 +77,7 @@ public final class NightfallClient implements ClientModInitializer {
         if (id.equals("fullbright")) {
             if (active) {
                 originalGamma = client.options.getGamma().getValue();
-                client.options.getGamma().setValue(100.0);
+                client.options.getGamma().setValue(FeatureSettings.number("fullbright", "gamma"));
             } else client.options.getGamma().setValue(originalGamma);
         }
     }
@@ -101,7 +102,7 @@ public final class NightfallClient implements ClientModInitializer {
         WorldVisuals.tick(client);
 
         if (enabled("fullbright") && client.options.getGamma().getValue() < 90.0)
-            client.options.getGamma().setValue(100.0);
+            client.options.getGamma().setValue(FeatureSettings.number("fullbright", "gamma"));
         if (enabled("autosprint") && player.input.movementForward > 0.1f && !player.horizontalCollision)
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;
@@ -128,9 +129,9 @@ public final class NightfallClient implements ClientModInitializer {
         boolean zoom = enabled("zoom") && zoomKey.isPressed();
         if (zoom && !zoomWasActive) {
             originalFov = client.options.getFov().getValue();
-            client.options.getFov().setValue(28);
-        } else if (zoom && client.options.getFov().getValue() != 28) {
-            client.options.getFov().setValue(28);
+            client.options.getFov().setValue((int) FeatureSettings.number("zoom", "fov"));
+        } else if (zoom && client.options.getFov().getValue() != (int) FeatureSettings.number("zoom", "fov")) {
+            client.options.getFov().setValue((int) FeatureSettings.number("zoom", "fov"));
         } else if (!zoom && zoomWasActive) client.options.getFov().setValue(originalFov);
         zoomWasActive = zoom;
 
@@ -147,11 +148,18 @@ public final class NightfallClient implements ClientModInitializer {
             triggerTicks++;
             if (enabled("killaura")) {
                 auraTicks++;
-                double auraRange = enabled("reach") ? 5.0 : 3.6;
+                double configuredRange = FeatureSettings.number("killaura", "range");
+                double auraRange = enabled("reach") ? Math.max(5.0, configuredRange) : configuredRange;
                 LivingEntity target = findAuraTarget(client, auraRange);
                 if (target != null) {
-                    boolean aligned = rotateToTarget(player, target, 42.0f, 30.0f);
-                    if (auraTicks >= 2 && aligned
+                    float rotationSpeed = (float) FeatureSettings.number("killaura", "rotationSpeed");
+                    boolean snap = FeatureSettings.mode("killaura", "rotationMode").equals("Snap");
+                    boolean aligned = rotateToTarget(player, target, snap ? 180.0f : rotationSpeed,
+                            snap ? 180.0f : Math.max(3.0f, rotationSpeed * 0.7f));
+                    int attackDelay = (int) FeatureSettings.number("killaura", "attackDelay");
+                    boolean criticalAllowed = !FeatureSettings.mode("killaura", "criticalMode").equals("Natural Crits")
+                            || isNaturalCriticalFall(player);
+                    if (auraTicks >= attackDelay && aligned && criticalAllowed
                             && player.squaredDistanceTo(target) <= auraRange * auraRange
                             && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
                         attack(client, target);
@@ -207,7 +215,8 @@ public final class NightfallClient implements ClientModInitializer {
             totemDelay = 0;
             return;
         }
-        if (++totemDelay < 5) return;
+        int configuredSwapDelay = Math.max(1, (int) FeatureSettings.number("autototem", "swapDelay"));
+        if (++totemDelay < configuredSwapDelay) return;
         totemDelay = 0;
         for (int i = 0; i < 36; i++) {
             if (player.getInventory().getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
@@ -217,6 +226,12 @@ public final class NightfallClient implements ClientModInitializer {
                 return;
             }
         }
+    }
+
+    private static boolean isNaturalCriticalFall(net.minecraft.client.network.ClientPlayerEntity player) {
+        return !player.isOnGround() && player.fallDistance > 0.0f && player.getVelocity().y < -0.05
+                && !player.isClimbing() && !player.isTouchingWater() && !player.isInLava()
+                && !player.isSprinting() && !player.isGliding();
     }
 
     /** Selects a visible target independently of the crosshair, so KillAura can acquire it on its own. */

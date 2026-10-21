@@ -34,7 +34,7 @@ public final class HudEditorScreen extends Screen {
             new Widget("fps", "FPS 358 / PING 45 MS", "fps", w - 143, 10, 133, 23),
             new Widget("coordinates", "X 120.0  Y 64.0  Z -20.0", "coordinates", 9, h - 30, 170, 23),
             new Widget("keystrokes", "W A S D / LMB / RMB", "keystrokes", w - 150, h - 57, 137, 43),
-            new Widget("mediaplayer", "NOW PLAYING / MEDIA", "mediaplayer", w - 270, 40, 258, 57),
+            new Widget("mediaplayer", "NOW PLAYING / MEDIA", "mediaplayer", w - 290, 40, 278, 62),
             new Widget("worldlyrics", "LYRICS / current track line", "worldlyrics", w / 2 - 175, h - 57, 350, 29),
             new Widget("radar", "PLAYER RADAR", "radar", w - 108, 110, 92, 92),
             new Widget("targethud", "TARGET / 18.5 HP", "targethud", w / 2 - 80, h / 2 + 34, 160, 42),

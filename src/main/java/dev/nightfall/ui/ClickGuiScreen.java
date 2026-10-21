@@ -165,11 +165,14 @@ public final class ClickGuiScreen extends Screen {
             ctx.fill(bx, by, bx + g.cardW, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
             ctx.fill(bx, by + 1, bx + 2, by + g.cardH - 1, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
 
-            drawText(ctx, feature.name(), bx + 10, by + 8, TEXT);
+            ctx.fill(bx + 9, by + 9, bx + 33, by + 33, 0xFF3B2444);
+            ctx.fill(bx + 9, by + 9, bx + 33, by + 10, feature.enabled() ? ACCENT : BORDER);
+            drawModuleGlyph(ctx, feature.id(), bx + 11, by + 11, feature.enabled() ? ACCENT : ACCENT_2);
+            drawText(ctx, feature.name(), bx + 40, by + 8, TEXT);
             String desc = feature.description();
-            int maxChars = Math.max(12, (g.cardW - 20) / 5);
+            int maxChars = Math.max(10, (g.cardW - 61) / 5);
             if (desc.length() > maxChars) desc = desc.substring(0, maxChars - 1) + "…";
-            drawText(ctx, desc, bx + 10, by + 27, MUTED);
+            drawText(ctx, desc, bx + 40, by + 27, MUTED);
             drawText(ctx, "BIND  " + FeatureBinds.label(feature.id()), bx + 10, by + 46,
                     FeatureBinds.isBound(feature.id()) ? ACCENT_2 : 0xFF886F90);
 
@@ -252,6 +255,78 @@ public final class ClickGuiScreen extends Screen {
                         || f.id().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
                         || f.description().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toList());
+    }
+
+    private void drawCategoryGlyph(DrawContext ctx, Feature.Category category, int x, int y, int color) {
+        switch (category) {
+            case COMBAT -> {
+                ctx.fill(x + 2, y + 12, x + 5, y + 15, color);
+                ctx.fill(x + 5, y + 9, x + 8, y + 12, color);
+                ctx.fill(x + 8, y + 6, x + 11, y + 9, color);
+                ctx.fill(x + 11, y + 3, x + 15, y + 7, color);
+                ctx.fill(x + 4, y + 8, x + 9, y + 10, color);
+            }
+            case MOVEMENT -> {
+                ctx.fill(x + 8, y + 2, x + 10, y + 17, color);
+                ctx.fill(x + 4, y + 4, x + 8, y + 8, color);
+                ctx.fill(x + 10, y + 4, x + 14, y + 8, color);
+                ctx.fill(x + 4, y + 11, x + 8, y + 15, color);
+                ctx.fill(x + 10, y + 11, x + 14, y + 15, color);
+            }
+            case VISUALS -> {
+                ctx.fill(x + 2, y + 8, x + 6, y + 5, color);
+                ctx.fill(x + 6, y + 5, x + 12, y + 5, color);
+                ctx.fill(x + 12, y + 5, x + 16, y + 8, color);
+                ctx.fill(x + 2, y + 8, x + 6, y + 12, color);
+                ctx.fill(x + 6, y + 12, x + 12, y + 12, color);
+                ctx.fill(x + 12, y + 12, x + 16, y + 8, color);
+                ctx.fill(x + 7, y + 7, x + 11, y + 11, color);
+            }
+            case HUD -> {
+                ctx.fill(x + 2, y + 2, x + 7, y + 7, color);
+                ctx.fill(x + 10, y + 2, x + 15, y + 7, color);
+                ctx.fill(x + 2, y + 10, x + 7, y + 15, color);
+                ctx.fill(x + 10, y + 10, x + 15, y + 15, color);
+            }
+            case WORLD -> {
+                ctx.fill(x + 5, y + 2, x + 12, y + 3, color);
+                ctx.fill(x + 2, y + 5, x + 3, y + 12, color);
+                ctx.fill(x + 14, y + 5, x + 15, y + 12, color);
+                ctx.fill(x + 5, y + 14, x + 12, y + 15, color);
+                ctx.fill(x + 5, y + 5, x + 12, y + 12, color);
+                ctx.fill(x + 7, y + 7, x + 10, y + 10, 0xFF28182F);
+            }
+            case PLAYER -> {
+                ctx.fill(x + 6, y + 2, x + 11, y + 7, color);
+                ctx.fill(x + 4, y + 8, x + 13, y + 11, color);
+                ctx.fill(x + 3, y + 11, x + 5, y + 16, color);
+                ctx.fill(x + 12, y + 11, x + 14, y + 16, color);
+            }
+        }
+    }
+
+    private void drawModuleGlyph(DrawContext ctx, String id, int x, int y, int color) {
+        if (id.equals("mediaplayer") || id.equals("worldlyrics")) {
+            ctx.fill(x + 3, y + 3, x + 5, y + 15, color);
+            ctx.fill(x + 5, y + 3, x + 12, y + 5, color);
+            ctx.fill(x + 10, y + 4, x + 12, y + 13, color);
+            ctx.fill(x + 2, y + 12, x + 8, y + 16, color);
+            return;
+        }
+        if (id.equals("killaura") || id.equals("triggerbot") || id.equals("hitspark")) {
+            drawCategoryGlyph(ctx, Feature.Category.COMBAT, x, y, color);
+            return;
+        }
+        if (id.equals("aimassist") || id.equals("targethud") || id.equals("customcrosshair")) {
+            ctx.fill(x + 10, y + 2, x + 12, y + 8, color);
+            ctx.fill(x + 10, y + 14, x + 12, y + 20, color);
+            ctx.fill(x + 2, y + 10, x + 8, y + 12, color);
+            ctx.fill(x + 14, y + 10, x + 20, y + 12, color);
+            ctx.fill(x + 8, y + 8, x + 14, y + 14, color);
+            ctx.fill(x + 9, y + 9, x + 13, y + 13, 0xFF21142A);
+            return;
+        }
+        drawCategoryGlyph(ctx, FeatureRegistry.find(id).map(Feature::category).orElse(Feature.Category.VISUALS), x, y, color);
     }
 
     private String categoryCode(Feature.Category category) {

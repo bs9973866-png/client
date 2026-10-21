@@ -43,7 +43,15 @@ public final class FeatureRegistry {
         add("storageesp", "Storage ESP", "Контуры сундуков, бочек и шалкеров поблизости.", VISUALS, false);
         add("oresp", "Ore ESP", "Подсветка руд в пределах загруженной области.", VISUALS, false);
         add("fullbright", "FullBright", "Повышенная яркость с восстановлением настройки.", VISUALS, false);
-        add("nebulasky", "Nebula Sky", "Фиолетовое небо, тонированные облака и звёзды NIGHTFALL.", VISUALS, true);
+        add("nebulasky", "Nebula Sky", "Фиолетовое небо, тонированные облака и звёзды NIGHTFALL.", VISUALS, false);
+        add("shaders", "Shader Studio", "Встроенные цветовые профили: Violet, Sakura, Sunset, Aqua и Cinema.", VISUALS, false);
+        add("cartoonoutline", "Cartoon Outline", "Контрастные мультяшные контуры сущностей.", VISUALS, false);
+        add("projectiletrail", "Projectile Trail", "Неоновый след снарядов и стрел.", VISUALS, false);
+        add("nametags", "Clean Nametags", "Чистые имена и расстояние над игроками.", VISUALS, false);
+        add("pearltracker", "Pearl Trajectory", "Показывает предполагаемую траекторию эндер-жемчуга.", VISUALS, false);
+        add("crosshairglow", "Crosshair Glow", "Пульсирующая неоновая подсветка прицела.", VISUALS, false);
+        add("motionglow", "Motion Glow", "Мягкий цветовой импульс при движении.", VISUALS, false);
+        add("totemparticles", "Totem Sparkles", "Мягкие розовые частицы при наличии тотема.", VISUALS, false);
         add("customcrosshair", "Custom Crosshair", "Тонкий бирюзовый прицел.", VISUALS, true);
         add("hitpulse", "Damage Tint", "Ненавязчивый оттенок при получении урона.", VISUALS, false);
         add("trail", "Player Trail", "Мягкие частицы за игроком.", VISUALS, false);
@@ -66,6 +74,7 @@ public final class FeatureRegistry {
 
         // Player / world utility
         add("autototem", "Auto Totem", "Перекладывает тотем в левую руку при низком HP.", PLAYER, false);
+        add("pearlfollow", "Pearl Follow", "Автоматически бросает жемчуг вслед за игроком, кинувшим свой.", PLAYER, false);
     }
 
     private static void add(String id, String name, String description, Feature.Category category, boolean enabled) {

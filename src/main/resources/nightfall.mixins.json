@@ -8,7 +8,8 @@
     "InGameHudMixin",
     "VelocityPacketMixin",
     "HudMediaMouseMixin",
-    "NebulaSkyMixin"
+    "NebulaSkyMixin",
+    "FullBrightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

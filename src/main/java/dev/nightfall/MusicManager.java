@@ -47,6 +47,7 @@ public final class MusicManager {
     private static volatile List<LyricLine> lyrics = List.of();
     private static volatile String lyricTrackKey = "";
     private static volatile String lyricError = "";
+    private static volatile long lastLyricsAttemptAt;
 
     private MusicManager() {}
 
@@ -97,6 +98,10 @@ public final class MusicManager {
         String output = executePowerShell("status");
         if (output.isBlank()) {
             state = MediaState.unavailable();
+            lyrics = List.of();
+            lyricTrackKey = "";
+            lyricError = "";
+            lastLyricsAttemptAt = 0L;
             return;
         }
         try {
@@ -108,17 +113,27 @@ public final class MusicManager {
             String status = string(json, "status");
             long pos = number(json, "positionMs");
             long duration = number(json, "durationMs");
-            MediaState old = state;
             MediaState next = new MediaState(ok, title, artist, app, status, pos, duration, System.currentTimeMillis());
             state = next;
-            if (!title.isBlank() && (!title.equals(old.title()) || !artist.equals(old.artist()))) {
-                lyrics = List.of();
-                lyricError = "";
+            if (!title.isBlank()) {
                 String key = title + "\u0000" + artist;
                 if (!key.equals(lyricTrackKey)) {
+                    lyrics = List.of();
+                    lyricError = "";
                     lyricTrackKey = key;
+                    lastLyricsAttemptAt = 0L;
+                }
+                long now = System.currentTimeMillis();
+                // Retry periodically when LRCLIB is offline, rate-limited, or the track has no synced entry.
+                if (lyrics.isEmpty() && now - lastLyricsAttemptAt >= 30_000L) {
+                    lastLyricsAttemptAt = now;
                     EXECUTOR.execute(() -> fetchLyrics(title, artist, key));
                 }
+            } else {
+                lyrics = List.of();
+                lyricTrackKey = "";
+                lyricError = "";
+                lastLyricsAttemptAt = 0L;
             }
         } catch (Exception e) {
             NightfallClient.LOGGER.debug("Could not parse Windows media session: {}", e.getMessage());

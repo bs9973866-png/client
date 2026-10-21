@@ -413,6 +413,32 @@ public final class ClickGuiScreen extends Screen {
             }
         }
 
+        // The detail panel is interactive too, not just a visual preview.
+        int dx = g.mainRight + 13, dy = g.listY, dw = x + g.pw - 15 - dx;
+        int dh = g.footerY - g.listY - 3;
+        Feature chosen = FeatureRegistry.find(selectedModuleId).orElse(null);
+        if (chosen != null && inside(mx, my, dx, dy, dw, dh)) {
+            int textY = dy + 73 + wrap(chosen.description(), Math.max(13, (dw - 24) / 5), 3).size() * 13 + 16 + 15;
+            List<FeatureSettings.Spec> specs = FeatureSettings.forModule(chosen.id());
+            for (int i = 0; i < Math.min(specs.size(), 4); i++) {
+                FeatureSettings.Spec spec = specs.get(i);
+                if (textY > dy + dh - 64) break;
+                if (inside(mx, my, dx + 8, textY - 4, dw - 16, 22)) {
+                    switch (spec.type()) {
+                        case TOGGLE -> FeatureSettings.toggle(spec);
+                        case MODE -> FeatureSettings.nextMode(spec);
+                        case SLIDER -> {
+                            int barX = dx + 12, barW = dw - 24;
+                            double fraction = Math.max(0, Math.min(1, (mx - barX) / (double) barW));
+                            FeatureSettings.setNumber(spec, spec.min() + fraction * (spec.max() - spec.min()));
+                        }
+                    }
+                    return true;
+                }
+                if (spec.type() == FeatureSettings.Type.SLIDER) textY += 7;
+                textY += 22;
+            }
+        }
         return true;
     }
 

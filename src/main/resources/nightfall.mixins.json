@@ -6,7 +6,8 @@
   "client": [
     "MinecraftClientMixin",
     "InGameHudMixin",
-    "VelocityPacketMixin"
+    "VelocityPacketMixin",
+    "HudMediaMouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

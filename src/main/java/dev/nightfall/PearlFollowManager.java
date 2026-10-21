@@ -1,6 +1,7 @@
 package dev.nightfall;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
@@ -115,7 +116,7 @@ public final class PearlFollowManager {
         }
     }
 
-    private static void restoreSlotIfDue(PlayerEntity player) {
+    private static void restoreSlotIfDue(ClientPlayerEntity player) {
         if (restoreSlot >= 0 && tickCount >= restoreAtTick) {
             player.getInventory().selectedSlot = restoreSlot;
             player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(restoreSlot));
@@ -123,7 +124,7 @@ public final class PearlFollowManager {
         }
     }
 
-    private static void cancelPending(PlayerEntity player) {
+    private static void cancelPending(ClientPlayerEntity player) {
         if (player != null && pendingPearlSlot >= 0 && pendingPreviousSlot >= 0) {
             player.getInventory().selectedSlot = pendingPreviousSlot;
             player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(pendingPreviousSlot));

@@ -152,6 +152,21 @@ public final class WorldVisuals {
                 VertexRendering.drawBox(matrices, lines, new Box(pos).expand(0.018), r, g, b, 0.92f);
             }
         }
+
+        if (NightfallClient.enabled("worldlyrics")) {
+            String lyric = MusicManager.currentLyric();
+            if (!lyric.isBlank()) {
+                matrices.push();
+                matrices.translate(client.player.getX(), client.player.getY() + client.player.getHeight() + 0.55, client.player.getZ());
+                matrices.multiply(client.getEntityRenderDispatcher().getRotation());
+                matrices.scale(-0.025f, -0.025f, 0.025f);
+                float tx = -client.textRenderer.getWidth(lyric) / 2.0f;
+                client.textRenderer.draw(lyric, tx, 0, 0xFFE1E9E9, true, matrices.peek().getPositionMatrix(),
+                        consumers, net.minecraft.client.font.TextRenderer.TextLayerType.NORMAL,
+                        0xA010171E, net.minecraft.client.render.LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                matrices.pop();
+            }
+        }
         matrices.pop();
     }
 

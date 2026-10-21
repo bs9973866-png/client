@@ -30,9 +30,10 @@ public final class FeatureSettings {
 
     static {
         add("killaura", "range", "Дальность атаки", Type.SLIDER, 2.0, 5.0, 0.1, List.of(), 3.6);
-        add("killaura", "rotation", "Ротация", Type.MODE, 0, 0, 0, List.of("Silent", "Visible"), "Silent");
+        add("killaura", "rotationMode", "Режим ротации", Type.MODE, 0, 0, 0, List.of("Smooth", "Snap"), "Smooth");
         add("killaura", "rotationSpeed", "Скорость поворота", Type.SLIDER, 5, 90, 1, List.of(), 42.0);
-        add("killaura", "criticalMode", "Криты", Type.MODE, 0, 0, 0, List.of("AutoJump", "Only", "Off"), "AutoJump");
+        add("killaura", "criticalMode", "Тип атаки", Type.MODE, 0, 0, 0, List.of("Natural Crits", "Normal"), "Natural Crits");
+        add("killaura", "attackDelay", "Задержка атаки", Type.SLIDER, 1, 10, 1, List.of(), 3.0);
         add("autototem", "healthThreshold", "Порог здоровья", Type.SLIDER, 1, 20, 1, List.of(), 12.0);
         add("autototem", "swapDelay", "Задержка замены", Type.SLIDER, 1, 10, 1, List.of(), 5.0);
         add("zoom", "fov", "Поле зрения", Type.SLIDER, 10, 50, 1, List.of(), 28.0);

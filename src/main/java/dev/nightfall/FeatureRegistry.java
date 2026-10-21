@@ -43,6 +43,7 @@ public final class FeatureRegistry {
         add("storageesp", "Storage ESP", "Контуры сундуков, бочек и шалкеров поблизости.", VISUALS, false);
         add("oresp", "Ore ESP", "Подсветка руд в пределах загруженной области.", VISUALS, false);
         add("fullbright", "FullBright", "Повышенная яркость с восстановлением настройки.", VISUALS, false);
+        add("nebulasky", "Nebula Sky", "Фиолетовое небо, тонированные облака и звёзды NIGHTFALL.", VISUALS, true);
         add("customcrosshair", "Custom Crosshair", "Тонкий бирюзовый прицел.", VISUALS, true);
         add("hitpulse", "Damage Tint", "Ненавязчивый оттенок при получении урона.", VISUALS, false);
         add("trail", "Player Trail", "Мягкие частицы за игроком.", VISUALS, false);

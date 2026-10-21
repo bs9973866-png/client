@@ -373,13 +373,33 @@ public final class NightfallClient implements ClientModInitializer {
             drawText(ctx, c, s, x + 9, y + 7, white);
         }
 
-        if (enabled("customcrosshair")) {
+        if (enabled("customcrosshair") || enabled("crosshairglow")) {
             int x = w / 2, y = h / 2;
-            ctx.fill(x - 7, y - 1, x - 3, y + 1, accent);
-            ctx.fill(x + 3, y - 1, x + 7, y + 1, accent);
-            ctx.fill(x - 1, y - 7, x + 1, y - 3, accent);
-            ctx.fill(x - 1, y + 3, x + 1, y + 7, accent);
+            long now = System.currentTimeMillis();
+            int pulse = enabled("crosshairglow") ? 3 + (int)(2 * (0.5 + 0.5 * Math.sin(now * 0.009))) : 0;
+            if (enabled("crosshairglow")) {
+                int glowAlpha = 28 + (int)(22 * (0.5 + 0.5 * Math.sin(now * 0.006)));
+                int glow = (glowAlpha << 24) | 0x00F05CCF;
+                ctx.fill(x - 10 - pulse, y - 1, x - 4, y + 1, glow);
+                ctx.fill(x + 4, y - 1, x + 10 + pulse, y + 1, glow);
+                ctx.fill(x - 1, y - 10 - pulse, x + 1, y - 4, glow);
+                ctx.fill(x - 1, y + 4, x + 1, y + 10 + pulse, glow);
+            }
+            ctx.fill(x - 7 - pulse, y - 1, x - 3, y + 1, accent);
+            ctx.fill(x + 3, y - 1, x + 7 + pulse, y + 1, accent);
+            ctx.fill(x - 1, y - 7 - pulse, x + 1, y - 3, accent);
+            ctx.fill(x - 1, y + 3, x + 1, y + 7 + pulse, accent);
             ctx.fill(x - 1, y - 1, x + 1, y + 1, white);
+        }
+
+        if (enabled("motionglow") && c.player.getVelocity().horizontalLengthSquared() > 0.01) {
+            long now = System.currentTimeMillis();
+            int alpha = 10 + (int)(14 * (0.5 + 0.5 * Math.sin(now * 0.0035)));
+            int tint = (alpha << 24) | 0x00C94AEF;
+            ctx.fill(0, 0, w, 3, tint);
+            ctx.fill(0, h - 3, w, h, tint);
+            ctx.fill(0, 0, 3, h, tint);
+            ctx.fill(w - 3, 0, w, h, tint);
         }
 
         if (enabled("keystrokes")) {
@@ -439,6 +459,22 @@ public final class NightfallClient implements ClientModInitializer {
             int x = p[0], y = p[1];
             hudPanel(ctx, x, y, 105, 23, count > 0 ? accent : 0xFF796A82);
             drawText(ctx, c, s, x + 9, y + 7, count > 0 ? white : muted);
+        }
+
+        if (enabled("totemparticles") && (c.player.getMainHandStack().isOf(Items.TOTEM_OF_UNDYING)
+                || c.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING)
+                || c.player.getInventory().contains(new net.minecraft.item.ItemStack(Items.TOTEM_OF_UNDYING)))) {
+            long now = System.currentTimeMillis();
+            int baseX = 28, baseY = h - 70;
+            for (int i = 0; i < 12; i++) {
+                double phase = now * 0.002 + i * 0.81;
+                int px = baseX + (int)(Math.cos(phase) * (12 + i % 4 * 3));
+                int py = baseY + (int)(Math.sin(phase * 1.3) * (9 + i % 3 * 3));
+                int size = i % 4 == 0 ? 3 : 2;
+                int alpha = 80 + (int)(130 * (0.5 + 0.5 * Math.sin(phase)));
+                ctx.fill(px, py, px + size, py + size, (alpha << 24) | 0x00F05CCF);
+                if (i % 3 == 0) ctx.fill(px + size / 2, py - 2, px + size / 2 + 1, py + size + 2, (alpha << 24) | 0x00BE8BFF);
+            }
         }
 
         if (enabled("armorhud")) {

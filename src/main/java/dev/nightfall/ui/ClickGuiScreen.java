@@ -18,18 +18,18 @@ import java.util.stream.Collectors;
 
 /** NIGHTFALL's card-based, rose-violet ClickGUI. */
 public final class ClickGuiScreen extends Screen {
-    private static final int BG = 0xF10A0712;
-    private static final int SIDEBAR = 0xFF120D1B;
-    private static final int PANEL = 0xFF1A1222;
-    private static final int CARD = 0xFF24182E;
-    private static final int CARD_HOVER = 0xFF30203D;
-    private static final int CARD_ON = 0xFF30203C;
-    private static final int BORDER = 0xFF4B3154;
+    private static final int BG = 0xF10D0918;
+    private static final int SIDEBAR = 0xFF171023;
+    private static final int PANEL = 0xFF21172E;
+    private static final int CARD = 0xFF2A1C36;
+    private static final int CARD_HOVER = 0xFF3A2448;
+    private static final int CARD_ON = 0xFF372043;
+    private static final int BORDER = 0xFF654267;
     private static final int TEXT = 0xFFFFF0FE;
     private static final int MUTED = 0xFFB39AB8;
-    private static final int ACCENT = 0xFFF05CCF;
-    private static final int ACCENT_2 = 0xFFBE8BFF;
-    private static final int ACCENT_DARK = 0xFF572447;
+    private static final int ACCENT = 0xFFFF78D7;
+    private static final int ACCENT_2 = 0xFFB8A1FF;
+    private static final int ACCENT_DARK = 0xFF71385E;
     private static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.jpg");
 
     private Feature.Category selected = Feature.Category.COMBAT;
@@ -74,6 +74,14 @@ public final class ClickGuiScreen extends Screen {
             int pulse = (int)(22 + 22 * (0.5 + 0.5 * Math.sin(now * 0.002 + i)));
             roundedFill(ctx, sx, sy, 2 + i % 2, 2 + i % 2, (pulse << 24) | 0x00EF6CDE, 2);
         }
+        for (int i = 0; i < 10; i++) {
+            int size = 12 + (i % 4) * 5;
+            int sx = (int)Math.floorMod(i * 163L + now / (29L + i % 6), Math.max(1, width));
+            int sy = (int)Math.floorMod(i * 97L + now / (37L + i % 7), Math.max(1, height));
+            int alpha = 8 + (int)(12 * (0.5 + 0.5 * Math.sin(now * 0.0016 + i * 0.9)));
+            roundedFill(ctx, sx, sy, size, size, (alpha << 24) | 0x00B88DFF, size / 2);
+        }
+
         Geometry g = geometry();
         if (g.pw < 590 || g.ph < 350) {
             drawText(ctx, "Увеличь разрешение экрана для NIGHTFALL ClickGUI", 14, 14, TEXT);
@@ -82,10 +90,10 @@ public final class ClickGuiScreen extends Screen {
 
         int x = g.x, y = g.y, right = x + g.pw, bottom = y + g.ph;
         roundedFill(ctx, x + 4, y + 5, g.pw, g.ph, 0x65000000, 12);
-        roundedFill(ctx, x, y, g.pw, g.ph, BG, 16);
+        roundedFill(ctx, x, y, g.pw, g.ph, BG, 22);
         ctx.fill(x, y, right, y + 1, BORDER);
         ctx.fill(x, y, x + 3, bottom, ACCENT);
-        roundedFill(ctx, x + 3, y + 1, g.sideW - 3, g.ph - 2, SIDEBAR, 13);
+        roundedFill(ctx, x + 3, y + 1, g.sideW - 3, g.ph - 2, SIDEBAR, 18);
         ctx.fill(x + g.sideW, y + 1, x + g.sideW + 1, bottom - 1, BORDER);
 
         // Brand block.
@@ -93,7 +101,7 @@ public final class ClickGuiScreen extends Screen {
         ctx.fill(x + 18, y + 18, x + 46, y + 20, ACCENT);
         drawText(ctx, "N", x + 27, y + 26, TEXT);
         drawText(ctx, "NIGHTFALL", x + 55, y + 20, TEXT);
-        drawText(ctx, "CLIENT  /  1.21.4", x + 55, y + 36, MUTED);
+        drawText(ctx, "CARTOON UI  /  1.21.4", x + 55, y + 36, MUTED);
         ctx.fill(x + 17, y + 58, x + g.sideW - 16, y + 59, BORDER);
 
         Feature.Category[] categories = Feature.Category.values();
@@ -102,7 +110,7 @@ public final class ClickGuiScreen extends Screen {
             int cy = y + 76 + i * 43;
             boolean active = category == selected;
             if (active) {
-                roundedFill(ctx, x + 10, cy, g.sideW - 20, 32, ACCENT_DARK, 5);
+                roundedFill(ctx, x + 10, cy, g.sideW - 20, 32, ACCENT_DARK, 10);
                 ctx.fill(x + 10, cy, x + 13, cy + 32, ACCENT);
                 ctx.fill(x + 13, cy + 1, x + g.sideW - 11, cy + 2, 0xFF79405F);
             }
@@ -168,7 +176,7 @@ public final class ClickGuiScreen extends Screen {
             if (hovered) selectedModuleId = feature.id();
             boolean selectedCard = feature.id().equals(selectedModuleId);
             int cardColor = feature.enabled() ? CARD_ON : (hovered ? CARD_HOVER : CARD);
-            roundedFill(ctx, bx, by, g.cardW, g.cardH, cardColor, 10);
+            roundedFill(ctx, bx, by, g.cardW, g.cardH, cardColor, 14);
             float glowPulse = (float)(0.5 + 0.5 * Math.sin(System.currentTimeMillis() * 0.004 + i * 0.65));
             int edge = feature.enabled()
                     ? mixColor(ACCENT, ACCENT_2, glowPulse * 0.55f)
@@ -177,7 +185,7 @@ public final class ClickGuiScreen extends Screen {
             roundedFill(ctx, bx, by + 5, 3, g.cardH - 10,
                     feature.enabled() ? edge : (selectedCard ? ACCENT_2 : BORDER), 1);
 
-            roundedFill(ctx, bx + 9, by + 9, 24, 24, 0xFF3B2444, 8);
+            roundedFill(ctx, bx + 9, by + 9, 24, 24, 0xFF3B2444, 11);
             roundedFill(ctx, bx + 12, by + 9, 18, 2, feature.enabled() ? edge : BORDER, 1);
             drawModuleGlyph(ctx, feature.id(), bx + 11, by + 11, feature.enabled() ? ACCENT : ACCENT_2);
             drawText(ctx, feature.name(), bx + 40, by + 8, TEXT);
@@ -203,7 +211,7 @@ public final class ClickGuiScreen extends Screen {
 
         // Live module detail card on the right.
         int dx = g.mainRight + 13, dy = g.listY, dw = x + g.pw - 15 - dx, dh = g.footerY - g.listY - 3;
-        roundedFill(ctx, dx, dy, dw, dh, PANEL, 7);
+        roundedFill(ctx, dx, dy, dw, dh, PANEL, 14);
         ctx.fill(dx, dy, dx + dw, dy + 1, BORDER);
         ctx.fill(dx, dy, dx + 2, dy + dh, ACCENT);
         drawText(ctx, "MODULE DETAILS", dx + 12, dy + 12, ACCENT_2);

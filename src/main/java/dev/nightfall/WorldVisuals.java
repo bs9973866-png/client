@@ -14,6 +14,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -21,13 +22,19 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** World-space visuals implemented through Fabric's render event API. */
 public final class WorldVisuals {
     private static List<BlockPos> containers = List.of();
     private static List<BlockPos> ores = List.of();
     private static int scanTicks;
+    private static int trailCleanupTicks;
+    private static final Map<Integer, List<Vec3d>> PROJECTILE_TRAILS = new HashMap<>();
 
     private WorldVisuals() {}
 
@@ -40,13 +47,32 @@ public final class WorldVisuals {
             containers = List.of();
             ores = List.of();
             scanTicks = 0;
+            PROJECTILE_TRAILS.clear();
             return;
         }
+        updateProjectileTrails(client);
         if (++scanTicks % 8 != 0) return;
         if (NightfallClient.enabled("storageesp")) scanContainers(client);
         else containers = List.of();
         if (NightfallClient.enabled("oresp")) scanOres(client);
         else ores = List.of();
+    }
+
+    private static void updateProjectileTrails(MinecraftClient client) {
+        if (!NightfallClient.enabled("projectiletrail")) {
+            PROJECTILE_TRAILS.clear();
+            return;
+        }
+        Set<Integer> alive = new HashSet<>();
+        Box area = client.player.getBoundingBox().expand(48.0);
+        for (ProjectileEntity projectile : client.world.getEntitiesByClass(
+                ProjectileEntity.class, area, entity -> !entity.isRemoved())) {
+            alive.add(projectile.getId());
+            List<Vec3d> trail = PROJECTILE_TRAILS.computeIfAbsent(projectile.getId(), ignored -> new ArrayList<>());
+            trail.add(projectile.getPos());
+            while (trail.size() > 16) trail.remove(0);
+        }
+        if (++trailCleanupTicks % 12 == 0) PROJECTILE_TRAILS.keySet().retainAll(alive);
     }
 
     private static void scanContainers(MinecraftClient client) {
@@ -105,11 +131,12 @@ public final class WorldVisuals {
         if (NightfallClient.enabled("playeresp") || NightfallClient.enabled("mobesp")
                 || NightfallClient.enabled("tracers") || NightfallClient.enabled("targetring")
                 || NightfallClient.enabled("entityglow") || NightfallClient.enabled("itemesp")
-                || NightfallClient.enabled("projectileesp")) {
+                || NightfallClient.enabled("projectileesp") || NightfallClient.enabled("cartoonoutline")
+                || NightfallClient.enabled("nametags")) {
             Box renderArea = client.player.getBoundingBox().expand(64.0);
             for (Entity entity : context.world().getOtherEntities(client.player, renderArea, e -> !e.isRemoved() && !e.isSpectator())) {
                 if (entity instanceof PlayerEntity && NightfallClient.enabled("playeresp")) {
-                    drawEntityBox(matrices, lines, entity, 0.47f, 0.72f, 0.69f, 0.94f);
+                    drawEntityBox(matrices, lines, entity, 0.96f, 0.35f, 0.84f, 0.96f);
                 } else if (entity instanceof LivingEntity && !(entity instanceof PlayerEntity) && NightfallClient.enabled("mobesp")) {
                     drawEntityBox(matrices, lines, entity, 0.76f, 0.67f, 0.49f, 0.85f);
                 } else if (entity instanceof ItemEntity && NightfallClient.enabled("itemesp")) {
@@ -118,6 +145,16 @@ public final class WorldVisuals {
                     drawEntityBox(matrices, lines, entity, 0.49f, 0.69f, 0.86f, 0.9f);
                 }
 
+                if (NightfallClient.enabled("cartoonoutline") && entity instanceof LivingEntity) {
+                    VertexRendering.drawBox(matrices, lines, entity.getBoundingBox().expand(0.11),
+                            0.98f, 0.42f, 0.88f, 0.38f);
+                    VertexRendering.drawBox(matrices, lines, entity.getBoundingBox().expand(0.055),
+                            1.0f, 0.78f, 0.96f, 0.90f);
+                }
+                if (NightfallClient.enabled("nametags") && entity instanceof PlayerEntity target
+                        && target != client.player && target.squaredDistanceTo(client.player) < 32 * 32) {
+                    drawNameTag(client, matrices, consumers, target);
+                }
                 if (NightfallClient.enabled("tracers") && isVisibleTargetType(entity)) {
                     Vec3d to = new Vec3d(entity.getX(), entity.getY() + entity.getHeight() * 0.56, entity.getZ());
                     drawLine(matrices.peek(), lines, camera.x, camera.y, camera.z, to.x, to.y, to.z,
@@ -131,6 +168,33 @@ public final class WorldVisuals {
                     drawRing(matrices.peek(), lines, entity.getX(), entity.getY() + 0.06, entity.getZ(),
                             Math.max(0.48, entity.getWidth() * 0.72), 40,
                             0.47f, 0.72f, 0.69f, 0.95f);
+                }
+            }
+        }
+
+        if (NightfallClient.enabled("projectiletrail")) {
+            for (List<Vec3d> trail : PROJECTILE_TRAILS.values()) {
+                for (int i = 1; i < trail.size(); i++) {
+                    float fade = i / (float) trail.size();
+                    Vec3d from = trail.get(i - 1), to = trail.get(i);
+                    drawLine(matrices.peek(), lines, from.x, from.y, from.z, to.x, to.y, to.z,
+                            0.92f, 0.28f + 0.48f * fade, 0.92f, 0.22f + 0.68f * fade);
+                }
+            }
+        }
+
+        if (NightfallClient.enabled("pearltracker")) {
+            for (ProjectileEntity projectile : context.world().getEntitiesByClass(EnderPearlEntity.class,
+                    client.player.getBoundingBox().expand(48.0), entity -> !entity.isRemoved())) {
+                Vec3d point = projectile.getPos();
+                Vec3d velocity = projectile.getVelocity();
+                for (int step = 0; step < 28; step++) {
+                    Vec3d next = point.add(velocity);
+                    float alpha = Math.max(0.15f, 0.92f - step * 0.027f);
+                    drawLine(matrices.peek(), lines, point.x, point.y, point.z, next.x, next.y, next.z,
+                            0.98f, 0.42f, 0.88f, alpha);
+                    point = next;
+                    velocity = velocity.multiply(0.99).add(0.0, -0.03, 0.0);
                 }
             }
         }
@@ -171,6 +235,21 @@ public final class WorldVisuals {
                 matrices.pop();
             }
         }
+        matrices.pop();
+    }
+
+    private static void drawNameTag(MinecraftClient client, MatrixStack matrices,
+                                    VertexConsumerProvider consumers, PlayerEntity entity) {
+        double dist = Math.sqrt(entity.squaredDistanceTo(client.player));
+        String label = entity.getName().getString() + "  " + String.format(java.util.Locale.ROOT, "%.1fm", dist);
+        matrices.push();
+        matrices.translate(entity.getX(), entity.getY() + entity.getHeight() + 0.34, entity.getZ());
+        matrices.multiply(client.getEntityRenderDispatcher().getRotation());
+        matrices.scale(-0.024f, -0.024f, 0.024f);
+        float tx = -client.textRenderer.getWidth(label) / 2.0f;
+        client.textRenderer.draw(label, tx, 0, 0xFFFFF0FE, true, matrices.peek().getPositionMatrix(),
+                consumers, net.minecraft.client.font.TextRenderer.TextLayerType.NORMAL,
+                0xD9150D20, net.minecraft.client.render.LightmapTextureManager.MAX_LIGHT_COORDINATE);
         matrices.pop();
     }
 

@@ -1,6 +1,7 @@
 package dev.nightfall;
 
 import dev.nightfall.ui.ClickGuiScreen;
+import dev.nightfall.ui.UiText;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -8,8 +9,14 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
@@ -18,15 +25,16 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Comparator;
+import java.util.Locale;
 
 public final class NightfallClient implements ClientModInitializer {
     public static final String MOD_ID = "nightfall";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     private static KeyBinding clickGuiKey, zoomKey;
     private static double originalGamma = 1.0;
-    private static int originalFov = 70, auraTicks, triggerTicks, trailTicks;
+    private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks;
     private static long lastHitTime;
-    private static boolean zoomWasActive;
+    private static boolean zoomWasActive, jumpWasPressed;
 
     @Override public void onInitializeClient() {
         FeatureRegistry.init();
@@ -35,6 +43,7 @@ public final class NightfallClient implements ClientModInitializer {
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.nightfall.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, "category.nightfall"));
         ConfigManager.load();
+        WorldVisuals.register();
         ClientTickEvents.END_CLIENT_TICK.register(NightfallClient::tick);
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderHud(context));
         LOGGER.info("NIGHTFALL for Minecraft 1.21.4 loaded");
@@ -69,43 +78,65 @@ public final class NightfallClient implements ClientModInitializer {
         }
         if (client.player == null || client.world == null) {
             restoreZoom(client);
+            WorldVisuals.tick(client);
             return;
         }
         var player = client.player;
+        WorldVisuals.tick(client);
+
         if (enabled("fullbright") && client.options.getGamma().getValue() < 90.0)
             client.options.getGamma().setValue(100.0);
         if (enabled("autosprint") && player.input.movementForward > 0.1f && !player.horizontalCollision)
             player.setSprinting(true);
         if (enabled("nofall")) player.fallDistance = 0.0f;
-        if (enabled("speed") && client.isInSingleplayer() && player.isOnGround()
-                && player.input.movementForward != 0.0f) {
+        if (enabled("antifire") && player.isOnFire()) player.extinguish();
+
+        if (enabled("speed") && player.isOnGround() && player.input.movementForward != 0.0f) {
             Vec3d v = player.getVelocity();
-            player.setVelocity(v.x * 1.06, v.y, v.z * 1.06);
+            double multiplier = client.isInSingleplayer() ? 1.085 : 1.02;
+            player.setVelocity(v.x * multiplier, v.y, v.z * multiplier);
         }
+        if (enabled("spider") && player.horizontalCollision && player.input.movementForward > 0.0f) {
+            Vec3d v = player.getVelocity();
+            player.setVelocity(v.x, Math.max(v.y, 0.20), v.z);
+        }
+        boolean jumpPressed = client.options.jumpKey.isPressed();
+        if (enabled("airjump") && jumpPressed && !jumpWasPressed && !player.isOnGround() && airJumpTicks <= 0) {
+            player.jump();
+            airJumpTicks = 7;
+        }
+        jumpWasPressed = jumpPressed;
+        if (airJumpTicks > 0) airJumpTicks--;
+
         boolean zoom = enabled("zoom") && zoomKey.isPressed();
         if (zoom && !zoomWasActive) {
             originalFov = client.options.getFov().getValue();
-            client.options.getFov().setValue(25);
-        } else if (zoom && client.options.getFov().getValue() != 25) {
-            client.options.getFov().setValue(25);
+            client.options.getFov().setValue(28);
+        } else if (zoom && client.options.getFov().getValue() != 28) {
+            client.options.getFov().setValue(28);
         } else if (!zoom && zoomWasActive) client.options.getFov().setValue(originalFov);
         zoomWasActive = zoom;
 
-        if (client.isInSingleplayer() && client.currentScreen == null) {
+        // These helpers now select both player entities and mobs according to their module toggles.
+        // The local singleplayer-only guard has intentionally been removed: multiplayer servers may
+        // reject client-side automation or enforce their own reach/attack validation.
+        if (client.currentScreen == null) {
             if (enabled("aimassist")) {
-                LivingEntity target = findTarget(client, 5.0, 0.90);
+                double range = enabled("reach") ? 6.0 : 4.5;
+                LivingEntity target = findTarget(client, range, 0.88);
                 if (target != null) gentlyAim(player, target);
             }
             auraTicks++; triggerTicks++;
-            if (enabled("killaura") && auraTicks >= 10) {
-                LivingEntity target = findTarget(client, 4.2, 0.965);
+            int delay = enabled("killaura") ? 6 : 0;
+            if (enabled("killaura") && auraTicks >= delay) {
+                LivingEntity target = findTarget(client, enabled("reach") ? 6.0 : 3.8, 0.965);
                 if (target != null && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
                     attack(client, target); auraTicks = 0;
                 }
             }
             if (enabled("triggerbot") && triggerTicks >= 2 && client.crosshairTarget instanceof EntityHitResult hit
                     && hit.getEntity() instanceof LivingEntity target && target != player && target.isAlive()
-                    && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
+                    && shouldTarget(target) && player.getAttackCooldownProgress(0.5f) >= 0.9f) {
                 attack(client, target); triggerTicks = 0;
             }
         }
@@ -118,17 +149,25 @@ public final class NightfallClient implements ClientModInitializer {
         if (zoomWasActive && client.options != null) client.options.getFov().setValue(originalFov);
         zoomWasActive = false;
     }
+
+    private static boolean shouldTarget(LivingEntity living) {
+        if (living instanceof PlayerEntity) return enabled("targetplayers");
+        return enabled("targetmobs");
+    }
+
     private static LivingEntity findTarget(MinecraftClient client, double range, double minDot) {
         var player = client.player;
         if (player == null || client.world == null) return null;
         Vec3d look = player.getRotationVec(1.0f).normalize();
         return client.world.getOtherEntities(player, player.getBoundingBox().expand(range), entity ->
                 entity instanceof LivingEntity living && living.isAlive() && !living.isSpectator()
+                    && shouldTarget(living)
                     && player.squaredDistanceTo(entity) <= range * range
                     && entity.getBoundingBox().getCenter().subtract(player.getEyePos()).normalize().dotProduct(look) >= minDot)
             .stream().filter(LivingEntity.class::isInstance).map(LivingEntity.class::cast)
             .min(Comparator.comparingDouble(player::squaredDistanceTo)).orElse(null);
     }
+
     private static void gentlyAim(net.minecraft.client.network.ClientPlayerEntity player, LivingEntity target) {
         Vec3d d = target.getBoundingBox().getCenter().subtract(player.getEyePos());
         double horizontal = Math.sqrt(d.x * d.x + d.z * d.z);
@@ -137,6 +176,7 @@ public final class NightfallClient implements ClientModInitializer {
         player.setYaw(player.getYaw() + MathHelper.wrapDegrees(yaw - player.getYaw()) * 0.12f);
         player.setPitch(player.getPitch() + MathHelper.wrapDegrees(pitch - player.getPitch()) * 0.08f);
     }
+
     private static void attack(MinecraftClient client, LivingEntity target) {
         if (client.player == null || client.interactionManager == null || client.world == null) return;
         client.interactionManager.attackEntity(client.player, target);
@@ -150,52 +190,98 @@ public final class NightfallClient implements ClientModInitializer {
             }
         }
     }
+
+    private static void drawText(net.minecraft.client.gui.DrawContext ctx, MinecraftClient c, String value, int x, int y, int color) {
+        ctx.drawTextWithShadow(c.textRenderer, UiText.of(value), x, y, color);
+    }
+
+    private static int textWidth(MinecraftClient c, String value) {
+        return c.textRenderer.getWidth(UiText.of(value));
+    }
+
     private static void renderHud(net.minecraft.client.gui.DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.player == null || c.options.hudHidden) return;
         int w = c.getWindow().getScaledWidth(), h = c.getWindow().getScaledHeight();
-        int white = 0xFFF2F4FF, muted = 0xFF9DA3B8, cyan = 0xFF5CE1E6, purple = 0xFFB75CFF;
+        int white = 0xFFE1E9E9, muted = 0xFF8797A0, accent = 0xFF79BDB5, dark = 0xD910171E;
         if (enabled("hitpulse") && c.player.hurtTime > 0)
-            ctx.fill(0, 0, w, h, (Math.min(36, c.player.hurtTime * 3) << 24) | 0x00FF354F);
+            ctx.fill(0, 0, w, h, (Math.min(22, c.player.hurtTime * 2) << 24) | 0x0000BBAA);
+
         if (enabled("watermark")) {
-            ctx.fill(9, 9, 112, 31, 0xB90C0E18); ctx.fill(9, 9, 12, 31, purple);
-            ctx.drawTextWithShadow(c.textRenderer, "NIGHTFALL", 18, 12, white);
-            ctx.drawTextWithShadow(c.textRenderer, "1.21.4 / FABRIC", 18, 22, muted);
+            ctx.fill(9, 9, 126, 33, dark); ctx.fill(9, 9, 11, 33, accent);
+            drawText(ctx, c, "NIGHTFALL", 18, 12, white);
+            drawText(ctx, c, "1.21.4  /  FABRIC", 18, 22, muted);
         }
         if (enabled("fps")) {
-            String s = c.getCurrentFps() + " FPS"; int x = w - c.textRenderer.getWidth(s) - 12;
-            ctx.fill(x - 6, 9, w - 8, 25, 0xB90C0E18); ctx.drawTextWithShadow(c.textRenderer, s, x, 13, cyan);
+            String s = c.getCurrentFps() + " FPS"; int x = w - textWidth(c, s) - 12;
+            ctx.fill(x - 6, 9, w - 8, 25, dark); drawText(ctx, c, s, x, 13, accent);
         }
         if (enabled("coordinates")) {
-            String s = String.format(java.util.Locale.ROOT, "X %.1f  Y %.1f  Z %.1f", c.player.getX(), c.player.getY(), c.player.getZ());
-            ctx.fill(9, h - 25, 9 + c.textRenderer.getWidth(s) + 13, h - 9, 0xB90C0E18);
-            ctx.drawTextWithShadow(c.textRenderer, s, 15, h - 21, white);
+            String s = String.format(Locale.ROOT, "X %.1f   Y %.1f   Z %.1f", c.player.getX(), c.player.getY(), c.player.getZ());
+            ctx.fill(9, h - 25, 9 + textWidth(c, s) + 13, h - 9, dark);
+            drawText(ctx, c, s, 15, h - 21, white);
         }
         if (enabled("customcrosshair")) {
             int x = w / 2, y = h / 2;
-            ctx.fill(x - 8, y - 1, x - 3, y + 1, cyan); ctx.fill(x + 3, y - 1, x + 8, y + 1, cyan);
-            ctx.fill(x - 1, y - 8, x + 1, y - 3, cyan); ctx.fill(x - 1, y + 3, x + 1, y + 8, cyan);
+            ctx.fill(x - 7, y - 1, x - 3, y + 1, accent); ctx.fill(x + 3, y - 1, x + 7, y + 1, accent);
+            ctx.fill(x - 1, y - 7, x + 1, y - 3, accent); ctx.fill(x - 1, y + 3, x + 1, y + 7, accent);
             ctx.fill(x - 1, y - 1, x + 1, y + 1, white);
         }
         if (enabled("keystrokes")) {
-            String s = "W " + (c.options.forwardKey.isPressed() ? "■" : "□") + "  A " + (c.options.leftKey.isPressed() ? "■" : "□")
-                    + "  S " + (c.options.backKey.isPressed() ? "■" : "□") + "  D " + (c.options.rightKey.isPressed() ? "■" : "□");
-            ctx.fill(w - c.textRenderer.getWidth(s) - 14, h - 26, w - 8, h - 10, 0xB90C0E18);
-            ctx.drawTextWithShadow(c.textRenderer, s, w - c.textRenderer.getWidth(s) - 11, h - 21, cyan);
+            String s = "W " + (c.options.forwardKey.isPressed() ? "■" : "□") + "   A " + (c.options.leftKey.isPressed() ? "■" : "□")
+                    + "   S " + (c.options.backKey.isPressed() ? "■" : "□") + "   D " + (c.options.rightKey.isPressed() ? "■" : "□");
+            int tw = textWidth(c, s);
+            ctx.fill(w - tw - 18, h - 26, w - 8, h - 10, dark);
+            drawText(ctx, c, s, w - tw - 12, h - 21, accent);
         }
         if (enabled("targethud") && c.crosshairTarget instanceof EntityHitResult hit
                 && hit.getEntity() instanceof LivingEntity living && living != c.player && living.isAlive()) {
-            String name = living.getName().getString(), hp = String.format(java.util.Locale.ROOT, "HP %.1f / %.1f", living.getHealth(), living.getMaxHealth());
-            int bw = Math.max(c.textRenderer.getWidth(name), c.textRenderer.getWidth(hp)) + 20, x = (w - bw) / 2, y = h / 2 + 34;
-            ctx.fill(x, y, x + bw, y + 31, 0xD50C0E18); ctx.fill(x, y, x + 2, y + 31, purple);
-            ctx.drawTextWithShadow(c.textRenderer, name, x + 8, y + 5, white);
-            ctx.drawTextWithShadow(c.textRenderer, hp, x + 8, y + 17, muted);
-            ctx.fill(x + 8, y + 27, x + bw - 8, y + 29, 0xFF383A4D);
-            ctx.fill(x + 8, y + 27, x + 8 + (int)((bw - 16) * MathHelper.clamp(living.getHealth()/living.getMaxHealth(),0,1)), y + 29, cyan);
+            String name = living.getName().getString(), hp = String.format(Locale.ROOT, "HP %.1f / %.1f", living.getHealth(), living.getMaxHealth());
+            int bw = Math.max(textWidth(c, name), textWidth(c, hp)) + 20, x = (w - bw) / 2, y = h / 2 + 34;
+            ctx.fill(x, y, x + bw, y + 31, dark); ctx.fill(x, y, x + 2, y + 31, accent);
+            drawText(ctx, c, name, x + 8, y + 5, white);
+            drawText(ctx, c, hp, x + 8, y + 17, muted);
+            ctx.fill(x + 8, y + 27, x + bw - 8, y + 29, 0xFF303B43);
+            ctx.fill(x + 8, y + 27, x + 8 + (int)((bw - 16) * MathHelper.clamp(living.getHealth()/living.getMaxHealth(),0,1)), y + 29, accent);
         }
         if (enabled("hitmarker") && System.currentTimeMillis() - lastHitTime < 280) {
-            int x = w/2, y = h/2; ctx.fill(x-8,y-8,x-5,y-5,white); ctx.fill(x+5,y-8,x+8,y-5,white);
+            int x = w/2, y = h/2;
+            ctx.fill(x-8,y-8,x-5,y-5,white); ctx.fill(x+5,y-8,x+8,y-5,white);
             ctx.fill(x-8,y+5,x-5,y+8,white); ctx.fill(x+5,y+5,x+8,y+8,white);
+        }
+        if (enabled("speedometer")) {
+            Vec3d v = c.player.getVelocity();
+            double speed = Math.sqrt(v.x * v.x + v.z * v.z) * 20.0;
+            String s = String.format(Locale.ROOT, "%.2f m/s", speed);
+            drawText(ctx, c, s, 12, h - 39, accent);
+        }
+        if (enabled("totemcount")) {
+            int count = c.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) ? 1 : 0;
+            for (int i = 0; i < c.player.getInventory().size(); i++) {
+                ItemStack stack = c.player.getInventory().getStack(i);
+                if (stack.isOf(Items.TOTEM_OF_UNDYING)) count += stack.getCount();
+            }
+            drawText(ctx, c, "TOTEMS  " + count, 12, 37, count > 0 ? accent : muted);
+        }
+        if (enabled("armorhud")) {
+            int x = w / 2 - 72, y = h - 58, index = 0;
+            for (ItemStack stack : c.player.getArmorItems()) {
+                if (stack.isEmpty()) continue;
+                int durability = stack.isDamageable() ? (int)(100.0 * (stack.getMaxDamage() - stack.getDamage()) / stack.getMaxDamage()) : 100;
+                ctx.fill(x + index * 38, y, x + index * 32 + 28, y + 14, dark);
+                drawText(ctx, c, durability + "%", x + index * 38 + 3, y + 3, durability < 25 ? 0xFFD58B82 : accent);
+                index++;
+            }
+        }
+        if (enabled("potionhud")) {
+            int y = 42;
+            for (StatusEffectInstance effect : c.player.getStatusEffects()) {
+                String name = effect.getEffectType().value().getName().getString();
+                int seconds = effect.getDuration() / 20;
+                drawText(ctx, c, name + "  " + seconds + "s", w - textWidth(c, name + "  " + seconds + "s") - 10, y, muted);
+                y += 11;
+                if (y > 120) break;
+            }
         }
     }
 }

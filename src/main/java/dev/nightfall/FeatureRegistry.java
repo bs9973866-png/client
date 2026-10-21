@@ -52,6 +52,7 @@ public final class FeatureRegistry {
         add("crosshairglow", "Crosshair Glow", "Пульсирующая неоновая подсветка прицела.", VISUALS, false);
         add("motionglow", "Motion Glow", "Мягкий цветовой импульс при движении.", VISUALS, false);
         add("totemparticles", "Totem Sparkles", "Мягкие розовые частицы при наличии тотема.", VISUALS, false);
+        add("cartoonparticles", "Cartoon Particles", "Плавающие сердечки и искры во время движения.", VISUALS, false);
         add("customcrosshair", "Custom Crosshair", "Тонкий бирюзовый прицел.", VISUALS, true);
         add("hitpulse", "Damage Tint", "Ненавязчивый оттенок при получении урона.", VISUALS, false);
         add("trail", "Player Trail", "Мягкие частицы за игроком.", VISUALS, false);

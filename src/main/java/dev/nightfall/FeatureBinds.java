@@ -15,8 +15,10 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/** Persistent keyboard toggle binds for each NIGHTFALL feature. */
+/** Persistent keyboard and mouse-button toggle binds for NIGHTFALL features. */
 public final class FeatureBinds {
+    private static final int MOUSE_BIND_BASE = -100;
+    private static final int MAX_MOUSE_BUTTON = 7;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type MAP_TYPE = new TypeToken<Map<String, Integer>>() {}.getType();
     private static final Map<String, Integer> BINDS = new LinkedHashMap<>();
@@ -37,7 +39,8 @@ public final class FeatureBinds {
             Map<String, Integer> loaded = GSON.fromJson(Files.readString(path), MAP_TYPE);
             if (loaded != null) {
                 loaded.forEach((id, key) -> {
-                    if (FeatureRegistry.find(id).isPresent() && key != null && key >= 0) BINDS.put(id, key);
+                    if (FeatureRegistry.find(id).isPresent() && key != null
+                            && (key >= 0 || isMouseBind(key))) BINDS.put(id, key);
                 });
             }
         } catch (Exception e) {
@@ -50,12 +53,37 @@ public final class FeatureBinds {
     }
 
     public static boolean isBound(String featureId) {
-        return keyCode(featureId) != GLFW.GLFW_KEY_UNKNOWN;
+        return BINDS.containsKey(featureId);
+    }
+
+    public static boolean isMouseBind(int code) {
+        return code <= MOUSE_BIND_BASE && code >= MOUSE_BIND_BASE - MAX_MOUSE_BUTTON;
+    }
+
+    private static int encodeMouseButton(int button) {
+        return MOUSE_BIND_BASE - button;
+    }
+
+    private static int decodeMouseButton(int code) {
+        return MOUSE_BIND_BASE - code;
     }
 
     public static String label(String featureId) {
         int key = keyCode(featureId);
         if (key == GLFW.GLFW_KEY_UNKNOWN) return "NONE";
+        if (isMouseBind(key)) {
+            return switch (decodeMouseButton(key)) {
+                case GLFW.GLFW_MOUSE_BUTTON_LEFT -> "MOUSE 1";
+                case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> "MOUSE 2";
+                case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MOUSE 3";
+                case GLFW.GLFW_MOUSE_BUTTON_4 -> "MOUSE 4";
+                case GLFW.GLFW_MOUSE_BUTTON_5 -> "MOUSE 5";
+                case GLFW.GLFW_MOUSE_BUTTON_6 -> "MOUSE 6";
+                case GLFW.GLFW_MOUSE_BUTTON_7 -> "MOUSE 7";
+                case GLFW.GLFW_MOUSE_BUTTON_8 -> "MOUSE 8";
+                default -> "MOUSE";
+            };
+        }
         return switch (key) {
             case GLFW.GLFW_KEY_ESCAPE -> "ESC";
             case GLFW.GLFW_KEY_ENTER -> "ENTER";
@@ -88,9 +116,14 @@ public final class FeatureBinds {
     public static void set(String featureId, int keyCode) {
         if (FeatureRegistry.find(featureId).isEmpty()) return;
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN) BINDS.remove(featureId);
-        else if (keyCode >= 0) BINDS.put(featureId, keyCode);
+        else if (keyCode >= 0 || isMouseBind(keyCode)) BINDS.put(featureId, keyCode);
         WAS_DOWN.put(featureId, false);
         save();
+    }
+
+    public static void setMouseButton(String featureId, int button) {
+        if (button >= GLFW.GLFW_MOUSE_BUTTON_1 && button <= MAX_MOUSE_BUTTON)
+            set(featureId, encodeMouseButton(button));
     }
 
     public static void tick(MinecraftClient client) {
@@ -99,13 +132,14 @@ public final class FeatureBinds {
         if (window == 0L) return;
         boolean mayToggle = client.currentScreen == null;
         for (Feature feature : FeatureRegistry.all()) {
-            int key = keyCode(feature.id());
-            if (key == GLFW.GLFW_KEY_UNKNOWN) continue;
-            boolean down = GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
+            int code = keyCode(feature.id());
+            if (code == GLFW.GLFW_KEY_UNKNOWN) continue;
+            boolean down = isMouseBind(code)
+                    ? GLFW.glfwGetMouseButton(window, decodeMouseButton(code)) == GLFW.GLFW_PRESS
+                    : GLFW.glfwGetKey(window, code) == GLFW.GLFW_PRESS;
             boolean wasDown = WAS_DOWN.getOrDefault(feature.id(), false);
-            if (mayToggle && down && !wasDown) {
+            if (mayToggle && down && !wasDown)
                 NightfallClient.setFeatureEnabled(feature.id(), !feature.enabled());
-            }
             WAS_DOWN.put(feature.id(), down);
         }
     }

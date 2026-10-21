@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  * through GlobalSystemMediaTransportControls.
  */
 public final class MusicManager {
-    private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(r -> {
+    private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(3, r -> {
         Thread t = new Thread(r, "NIGHTFALL-Media");
         t.setDaemon(true);
         return t;

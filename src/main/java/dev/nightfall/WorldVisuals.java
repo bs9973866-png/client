@@ -155,7 +155,11 @@ public final class WorldVisuals {
 
         if (NightfallClient.enabled("worldlyrics")) {
             String lyric = MusicManager.currentLyric();
+            if (lyric.isBlank() && !MusicManager.state().title().isBlank()) {
+                lyric = MusicManager.lyricError().isBlank() ? "СИНХРОНИЗАЦИЯ ТЕКСТА..." : MusicManager.lyricError();
+            }
             if (!lyric.isBlank()) {
+                if (lyric.length() > 84) lyric = lyric.substring(0, 81) + "…";
                 matrices.push();
                 matrices.translate(client.player.getX(), client.player.getY() + client.player.getHeight() + 0.55, client.player.getZ());
                 matrices.multiply(client.getEntityRenderDispatcher().getRotation());

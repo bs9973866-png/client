@@ -295,5 +295,26 @@ public final class NightfallClient implements ClientModInitializer {
                 if (y > 120) break;
             }
         }
+        if (enabled("radar")) {
+            int rx = w - 108, ry = 38, size = 90, centerX = rx + size / 2, centerY = ry + size / 2;
+            ctx.fill(rx, ry, rx + size, ry + size, 0xD910171E);
+            ctx.fill(rx, ry, rx + size, ry + 1, 0xFF38454C);
+            ctx.fill(rx, ry, rx + 1, ry + size, accent);
+            ctx.fill(centerX, ry + 10, centerX + 1, ry + size - 10, 0xFF303C45);
+            ctx.fill(rx + 10, centerY, rx + size - 10, centerY + 1, 0xFF303C45);
+            ctx.fill(centerX - 2, centerY - 2, centerX + 3, centerY + 3, white);
+            for (PlayerEntity other : c.world.getPlayers()) {
+                if (other == c.player || other.isSpectator()) continue;
+                double dx = other.getX() - c.player.getX(), dz = other.getZ() - c.player.getZ();
+                double distance = Math.sqrt(dx * dx + dz * dz);
+                if (distance > 32.0) continue;
+                int px = centerX + (int)Math.round(dx * 1.05);
+                int py = centerY - (int)Math.round(dz * 1.05);
+                px = Math.max(rx + 4, Math.min(rx + size - 4, px));
+                py = Math.max(ry + 4, Math.min(ry + size - 4, py));
+                ctx.fill(px - 2, py - 2, px + 3, py + 3, 0xFF79BDB5);
+            }
+            drawText(ctx, c, "RADAR", rx + 6, ry + 5, muted);
+        }
     }
 }

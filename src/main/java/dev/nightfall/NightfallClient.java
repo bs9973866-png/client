@@ -306,10 +306,16 @@ public final class NightfallClient implements ClientModInitializer {
 
     private static void hudPanel(net.minecraft.client.gui.DrawContext ctx, int x, int y,
                                   int width, int height, int accent) {
-        ctx.fill(x + 2, y + 3, x + width + 2, y + height + 3, 0x55000000);
-        ctx.fill(x, y, x + width, y + height, 0xD9150D20);
-        ctx.fill(x, y, x + width, y + 1, 0xFF573452);
-        ctx.fill(x, y + 1, x + 2, y + height - 1, accent);
+        // Pixel-rounded corners: layered horizontal slices emulate the soft panels in the concept.
+        for (int row = 0; row < height; row++) {
+            int inset = Math.max(0, 3 - Math.min(row, height - 1 - row));
+            ctx.fill(x + inset + 2, y + row + 3, x + width - inset + 2, y + row + 4, 0x50000000);
+            ctx.fill(x + inset, y + row, x + width - inset, y + row + 1, 0xD9150D20);
+        }
+        ctx.fill(x + 3, y, x + width - 3, y + 1, 0xFF573452);
+        ctx.fill(x + 3, y + height - 1, x + width - 3, y + height, 0xFF573452);
+        ctx.fill(x, y + 4, x + 2, y + height - 4, accent);
+        ctx.fill(x + 2, y + 2, x + 3, y + height - 2, accent);
     }
 
     private static void drawKey(net.minecraft.client.gui.DrawContext ctx, MinecraftClient client,

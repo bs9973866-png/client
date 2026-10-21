@@ -7,6 +7,8 @@ import dev.nightfall.FeatureSettings;
 import dev.nightfall.NightfallClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.util.Identifier;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -28,6 +30,7 @@ public final class ClickGuiScreen extends Screen {
     private static final int ACCENT = 0xFFF05CCF;
     private static final int ACCENT_2 = 0xFFBE8BFF;
     private static final int ACCENT_DARK = 0xFF572447;
+    private static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.png");
 
     private Feature.Category selected = Feature.Category.COMBAT;
     private String search = "";
@@ -98,7 +101,7 @@ public final class ClickGuiScreen extends Screen {
             }
             int chip = active ? 0xFF6B2B5C : 0xFF261A30;
             ctx.fill(x + 18, cy + 7, x + 39, cy + 27, chip);
-            drawText(ctx, categoryCode(category), x + 21, cy + 13, active ? TEXT : MUTED);
+            drawCategoryGlyph(ctx, category, x + 20, cy + 8, active ? ACCENT : MUTED);
             drawText(ctx, category.title(), x + 48, cy + 12, active ? TEXT : MUTED);
             long on = FeatureRegistry.in(category).stream().filter(Feature::enabled).count();
             if (on > 0) {
@@ -109,6 +112,16 @@ public final class ClickGuiScreen extends Screen {
         }
 
         int profileY = bottom - 69;
+        int artX = x + 8, artY = y + 337, artW = g.sideW - 16, artH = Math.min(145, profileY - artY - 8);
+        if (artH > 60) {
+            ctx.fill(artX - 2, artY - 2, artX + artW + 2, artY + artH + 2, BORDER);
+            ctx.fill(artX, artY, artX + artW, artY + artH, PANEL);
+            ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT, artX, artY,
+                    0.0f, 0.0f, artW, artH, 96, 120);
+            ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH, 0xD90A0712);
+            ctx.fill(artX, artY + artH - 25, artX + artW, artY + artH - 23, ACCENT);
+            drawText(ctx, "STAY IN THE NIGHT", artX + 7, artY + artH - 16, TEXT);
+        }
         ctx.fill(x + 16, profileY, x + g.sideW - 16, profileY + 1, BORDER);
         ctx.fill(x + 18, profileY + 12, x + 43, profileY + 37, 0xFF38213F);
         drawText(ctx, "NF", x + 21, profileY + 20, ACCENT_2);

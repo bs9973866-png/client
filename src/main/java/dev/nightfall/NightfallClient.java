@@ -301,106 +301,179 @@ public final class NightfallClient implements ClientModInitializer {
         return c.textRenderer.getWidth(UiText.of(value));
     }
 
+    private static void hudPanel(net.minecraft.client.gui.DrawContext ctx, int x, int y,
+                                  int width, int height, int accent) {
+        ctx.fill(x + 2, y + 3, x + width + 2, y + height + 3, 0x55000000);
+        ctx.fill(x, y, x + width, y + height, 0xD9150D20);
+        ctx.fill(x, y, x + width, y + 1, 0xFF573452);
+        ctx.fill(x, y + 1, x + 2, y + height - 1, accent);
+    }
+
+    private static void drawKey(net.minecraft.client.gui.DrawContext ctx, MinecraftClient client,
+                                String label, int x, int y, int width, boolean active) {
+        ctx.fill(x, y, x + width, y + 16, active ? 0xFF6A285A : 0xFF2A1B35);
+        ctx.fill(x, y, x + width, y + 1, active ? 0xFFF05CCF : 0xFF4A3150);
+        int labelWidth = textWidth(client, label);
+        drawText(ctx, client, label, x + Math.max(2, (width - labelWidth) / 2), y + 4,
+                active ? 0xFFFFF0FE : 0xFFB39AB8);
+    }
+
     private static void renderHud(net.minecraft.client.gui.DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.player == null || c.options.hudHidden) return;
         int w = c.getWindow().getScaledWidth(), h = c.getWindow().getScaledHeight();
-        int white = 0xFFE1E9E9, muted = 0xFF8797A0, accent = 0xFF79BDB5, dark = 0xD910171E;
+        int white = 0xFFFFF0FE, muted = 0xFFB39AB8, accent = 0xFFF05CCF;
+        int accent2 = 0xFFBE8BFF, dark = 0xD9150D20;
+
         if (enabled("hitpulse") && c.player.hurtTime > 0)
-            ctx.fill(0, 0, w, h, (Math.min(22, c.player.hurtTime * 2) << 24) | 0x0000BBAA);
+            ctx.fill(0, 0, w, h, (Math.min(20, c.player.hurtTime * 2) << 24) | 0x006A1C8A);
 
         if (enabled("watermark")) {
-            int[] p = HudLayout.get("watermark", 9, 9); int x = p[0], y = p[1];
-            ctx.fill(x, y, x + 117, y + 24, dark); ctx.fill(x, y, x + 2, y + 24, accent);
-            drawText(ctx, c, "NIGHTFALL", x + 9, y + 3, white);
-            drawText(ctx, c, "1.21.4  /  FABRIC", x + 9, y + 13, muted);
+            int[] p = HudLayout.get("watermark", 9, 9);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, 142, 32, accent);
+            ctx.fill(x + 8, y + 7, x + 29, y + 28, 0xFF45213F);
+            drawText(ctx, c, "N", x + 15, y + 13, accent2);
+            drawText(ctx, c, "NIGHTFALL", x + 37, y + 6, white);
+            drawText(ctx, c, "EXO UI  /  1.21.4", x + 37, y + 19, muted);
         }
+
         if (enabled("fps")) {
-            String s = c.getCurrentFps() + " FPS";
-            int[] p = HudLayout.get("fps", w - textWidth(c, s) - 12, 9); int x = p[0], y = p[1];
-            ctx.fill(x - 6, y - 4, x + textWidth(c, s) + 4, y + 12, dark);
-            drawText(ctx, c, s, x, y, accent);
+            int latency = -1;
+            if (c.getNetworkHandler() != null) {
+                var entry = c.getNetworkHandler().getPlayerListEntry(c.player.getUuid());
+                if (entry != null) latency = entry.getLatency();
+            }
+            String s = c.getCurrentFps() + " FPS" + (latency >= 0 ? "  /  " + latency + " MS" : "");
+            int width = textWidth(c, s) + 18;
+            int[] p = HudLayout.get("fps", w - width - 10, 10);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, width, 23, accent2);
+            drawText(ctx, c, s, x + 9, y + 7, accent2);
         }
+
         if (enabled("coordinates")) {
-            String s = String.format(Locale.ROOT, "X %.1f   Y %.1f   Z %.1f", c.player.getX(), c.player.getY(), c.player.getZ());
-            int[] p = HudLayout.get("coordinates", 9, h - 25); int x = p[0], y = p[1];
-            ctx.fill(x, y, x + textWidth(c, s) + 13, y + 16, dark);
-            drawText(ctx, c, s, x + 6, y + 4, white);
+            String s = String.format(Locale.ROOT, "X %.1f   Y %.1f   Z %.1f",
+                    c.player.getX(), c.player.getY(), c.player.getZ());
+            int width = textWidth(c, s) + 18;
+            int[] p = HudLayout.get("coordinates", 9, h - 30);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, width, 23, accent);
+            drawText(ctx, c, s, x + 9, y + 7, white);
         }
+
         if (enabled("customcrosshair")) {
             int x = w / 2, y = h / 2;
-            ctx.fill(x - 7, y - 1, x - 3, y + 1, accent); ctx.fill(x + 3, y - 1, x + 7, y + 1, accent);
-            ctx.fill(x - 1, y - 7, x + 1, y - 3, accent); ctx.fill(x - 1, y + 3, x + 1, y + 7, accent);
+            ctx.fill(x - 7, y - 1, x - 3, y + 1, accent);
+            ctx.fill(x + 3, y - 1, x + 7, y + 1, accent);
+            ctx.fill(x - 1, y - 7, x + 1, y - 3, accent);
+            ctx.fill(x - 1, y + 3, x + 1, y + 7, accent);
             ctx.fill(x - 1, y - 1, x + 1, y + 1, white);
         }
+
         if (enabled("keystrokes")) {
-            String s = "W " + (c.options.forwardKey.isPressed() ? "■" : "□") + "   A " + (c.options.leftKey.isPressed() ? "■" : "□")
-                    + "   S " + (c.options.backKey.isPressed() ? "■" : "□") + "   D " + (c.options.rightKey.isPressed() ? "■" : "□");
-            int tw = textWidth(c, s);
-            int[] p = HudLayout.get("keystrokes", w - tw - 18, h - 26); int x = p[0], y = p[1];
-            ctx.fill(x, y, x + tw + 10, y + 16, dark);
-            drawText(ctx, c, s, x + 5, y + 5, accent);
+            int[] p = HudLayout.get("keystrokes", w - 150, h - 57);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, 137, 43, accent);
+            drawKey(ctx, c, "W", x + 29, y + 5, 22, c.options.forwardKey.isPressed());
+            drawKey(ctx, c, "A", x + 5, y + 23, 22, c.options.leftKey.isPressed());
+            drawKey(ctx, c, "S", x + 29, y + 23, 22, c.options.backKey.isPressed());
+            drawKey(ctx, c, "D", x + 53, y + 23, 22, c.options.rightKey.isPressed());
+            drawKey(ctx, c, "LMB", x + 82, y + 5, 48, c.options.attackKey.isPressed());
+            drawKey(ctx, c, "RMB", x + 82, y + 23, 48, c.options.useKey.isPressed());
         }
+
         if (enabled("targethud") && c.crosshairTarget instanceof EntityHitResult hit
                 && hit.getEntity() instanceof LivingEntity living && living != c.player && living.isAlive()) {
-            String name = living.getName().getString(), hp = String.format(Locale.ROOT, "HP %.1f / %.1f", living.getHealth(), living.getMaxHealth());
-            int bw = Math.max(textWidth(c, name), textWidth(c, hp)) + 20;
-            int[] p = HudLayout.get("targethud", (w - bw) / 2, h / 2 + 34); int x = p[0], y = p[1];
-            ctx.fill(x, y, x + bw, y + 31, dark); ctx.fill(x, y, x + 2, y + 31, accent);
-            drawText(ctx, c, name, x + 8, y + 5, white);
-            drawText(ctx, c, hp, x + 8, y + 17, muted);
-            ctx.fill(x + 8, y + 27, x + bw - 8, y + 29, 0xFF303B43);
-            ctx.fill(x + 8, y + 27, x + 8 + (int)((bw - 16) * MathHelper.clamp(living.getHealth()/living.getMaxHealth(),0,1)), y + 29, accent);
+            String name = living.getName().getString();
+            String hp = String.format(Locale.ROOT, "%.1f / %.1f HP", living.getHealth(), living.getMaxHealth());
+            int bw = Math.max(textWidth(c, name), textWidth(c, hp)) + 22;
+            int[] p = HudLayout.get("targethud", (w - bw) / 2, h / 2 + 34);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, bw, 42, accent);
+            drawText(ctx, c, name, x + 10, y + 7, white);
+            drawText(ctx, c, hp, x + 10, y + 20, muted);
+            int barX = x + 10, barY = y + 34, barW = bw - 20;
+            ctx.fill(barX, barY, barX + barW, barY + 3, 0xFF46324D);
+            int filled = (int)(barW * MathHelper.clamp(living.getHealth() / living.getMaxHealth(), 0, 1));
+            ctx.fill(barX, barY, barX + filled, barY + 3, accent);
         }
+
         if (enabled("hitmarker") && System.currentTimeMillis() - lastHitTime < 280) {
-            int x = w/2, y = h/2;
-            ctx.fill(x-8,y-8,x-5,y-5,white); ctx.fill(x+5,y-8,x+8,y-5,white);
-            ctx.fill(x-8,y+5,x-5,y+8,white); ctx.fill(x+5,y+5,x+8,y+8,white);
+            int x = w / 2, y = h / 2;
+            ctx.fill(x - 8, y - 8, x - 5, y - 5, white);
+            ctx.fill(x + 5, y - 8, x + 8, y - 5, white);
+            ctx.fill(x - 8, y + 5, x - 5, y + 8, white);
+            ctx.fill(x + 5, y + 5, x + 8, y + 8, white);
         }
+
         if (enabled("speedometer")) {
             Vec3d v = c.player.getVelocity();
             double speed = Math.sqrt(v.x * v.x + v.z * v.z) * 20.0;
-            String s = String.format(Locale.ROOT, "%.2f m/s", speed);
+            String s = String.format(Locale.ROOT, "%.2f M/S", speed);
             int[] p = HudLayout.get("speedometer", 12, h - 39);
-            drawText(ctx, c, s, p[0], p[1], accent);
+            int x = p[0], y = p[1], width = textWidth(c, s) + 18;
+            hudPanel(ctx, x, y, width, 23, accent2);
+            drawText(ctx, c, s, x + 9, y + 7, accent2);
         }
+
         if (enabled("totemcount")) {
             int count = c.player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING) ? 1 : 0;
             for (int i = 0; i < c.player.getInventory().size(); i++) {
                 ItemStack stack = c.player.getInventory().getStack(i);
                 if (stack.isOf(Items.TOTEM_OF_UNDYING)) count += stack.getCount();
             }
+            String s = "TOTEMS  " + count;
             int[] p = HudLayout.get("totemcount", 12, 37);
-            drawText(ctx, c, "TOTEMS  " + count, p[0], p[1], count > 0 ? accent : muted);
+            int x = p[0], y = p[1];
+            hudPanel(ctx, x, y, 105, 23, count > 0 ? accent : 0xFF796A82);
+            drawText(ctx, c, s, x + 9, y + 7, count > 0 ? white : muted);
         }
+
         if (enabled("armorhud")) {
-            int[] p = HudLayout.get("armorhud", w / 2 - 72, h - 58); int x = p[0], y = p[1], index = 0;
+            int[] p = HudLayout.get("armorhud", w / 2 - 72, h - 58);
+            int count = 0;
+            for (ItemStack stack : c.player.getArmorItems()) if (!stack.isEmpty()) count++;
+            int totalWidth = Math.max(1, count) * 38 + 4;
+            hudPanel(ctx, p[0], p[1], totalWidth, 23, accent2);
+            int index = 0;
             for (ItemStack stack : c.player.getArmorItems()) {
                 if (stack.isEmpty()) continue;
-                int durability = stack.isDamageable() ? (int)(100.0 * (stack.getMaxDamage() - stack.getDamage()) / stack.getMaxDamage()) : 100;
-                ctx.fill(x + index * 38, y, x + index * 32 + 28, y + 14, dark);
-                drawText(ctx, c, durability + "%", x + index * 38 + 3, y + 3, durability < 25 ? 0xFFD58B82 : accent);
+                int durability = stack.isDamageable()
+                        ? (int)(100.0 * (stack.getMaxDamage() - stack.getDamage()) / stack.getMaxDamage()) : 100;
+                int sx = p[0] + 5 + index * 38;
+                ctx.fill(sx, p[1] + 5, sx + 32, p[1] + 18, 0xFF38263F);
+                int fillW = (int)(28 * Math.max(0, Math.min(1, durability / 100.0)));
+                ctx.fill(sx + 2, p[1] + 15, sx + 2 + fillW, p[1] + 17, durability < 25 ? 0xFFFF797F : accent2);
+                drawText(ctx, c, durability + "%", sx + 3, p[1] + 7, durability < 25 ? 0xFFFFB2B5 : white);
                 index++;
             }
         }
+
         if (enabled("potionhud")) {
-            int[] p = HudLayout.get("potionhud", w - 150, 42); int x = p[0], y = p[1];
+            int[] p = HudLayout.get("potionhud", w - 160, 43);
+            int x = p[0], y = p[1];
+            int count = Math.min(5, c.player.getStatusEffects().size());
+            int panelH = Math.max(29, 20 + count * 14);
+            hudPanel(ctx, x, y, 148, panelH, accent2);
+            drawText(ctx, c, "ACTIVE EFFECTS", x + 8, y + 6, accent2);
+            int row = 0;
             for (StatusEffectInstance effect : c.player.getStatusEffects()) {
+                if (row >= 5) break;
                 String name = effect.getEffectType().value().getName().getString();
                 int seconds = effect.getDuration() / 20;
-                drawText(ctx, c, name + "  " + seconds + "s", x, y, muted);
-                y += 11;
-                if (y > 120) break;
+                drawText(ctx, c, name + "  " + seconds + "S", x + 8, y + 20 + row * 14, white);
+                row++;
             }
+            if (row == 0) drawText(ctx, c, "NO EFFECTS", x + 8, y + 20, muted);
         }
+
         if (enabled("radar")) {
             int[] p = HudLayout.get("radar", w - 108, 38);
-            int rx = p[0], ry = p[1], size = 90, centerX = rx + size / 2, centerY = ry + size / 2;
-            ctx.fill(rx, ry, rx + size, ry + size, 0xD910171E);
-            ctx.fill(rx, ry, rx + size, ry + 1, 0xFF38454C);
-            ctx.fill(rx, ry, rx + 1, ry + size, accent);
-            ctx.fill(centerX, ry + 10, centerX + 1, ry + size - 10, 0xFF303C45);
-            ctx.fill(rx + 10, centerY, rx + size - 10, centerY + 1, 0xFF303C45);
+            int rx = p[0], ry = p[1], size = 92, centerX = rx + size / 2, centerY = ry + size / 2;
+            hudPanel(ctx, rx, ry, size, size, accent);
+            ctx.fill(centerX, ry + 18, centerX + 1, ry + size - 10, 0xFF49344E);
+            ctx.fill(rx + 10, centerY, rx + size - 10, centerY + 1, 0xFF49344E);
             ctx.fill(centerX - 2, centerY - 2, centerX + 3, centerY + 3, white);
             for (PlayerEntity other : c.world.getPlayers()) {
                 if (other == c.player || other.isSpectator()) continue;
@@ -411,36 +484,42 @@ public final class NightfallClient implements ClientModInitializer {
                 int py = centerY - (int)Math.round(dz * 1.05);
                 px = Math.max(rx + 4, Math.min(rx + size - 4, px));
                 py = Math.max(ry + 4, Math.min(ry + size - 4, py));
-                ctx.fill(px - 2, py - 2, px + 3, py + 3, 0xFF79BDB5);
+                ctx.fill(px - 2, py - 2, px + 3, py + 3, accent);
             }
-            drawText(ctx, c, "RADAR", rx + 6, ry + 5, muted);
+            drawText(ctx, c, "RADAR", rx + 7, ry + 6, muted);
         }
+
         if (enabled("mediaplayer")) {
             MusicManager.MediaState media = MusicManager.state();
-            int[] p = HudLayout.get("mediaplayer", w - 260, 39); int x = p[0], y = p[1], bw = 248, bh = 45;
-            ctx.fill(x, y, x + bw, y + bh, dark); ctx.fill(x, y, x + 2, y + bh, accent);
+            int[] p = HudLayout.get("mediaplayer", w - 270, 40);
+            int x = p[0], y = p[1], bw = 258, bh = 57;
+            hudPanel(ctx, x, y, bw, bh, accent);
+            drawText(ctx, c, media.playing() ? "NOW PLAYING" : "MEDIA PLAYER", x + 9, y + 5, accent2);
             String title = media.title().isBlank() ? "Открой Spotify / Яндекс Музыку" : media.title();
             String artist = media.artist().isBlank() ? media.status() : media.artist();
-            while (textWidth(c, title) > bw - 18 && title.length() > 3) title = title.substring(0, title.length()-2) + "…";
-            while (textWidth(c, artist) > bw - 18 && artist.length() > 3) artist = artist.substring(0, artist.length()-2) + "…";
-            drawText(ctx, c, title, x + 9, y + 5, white);
-            drawText(ctx, c, artist, x + 9, y + 17, muted);
-            int progressWidth = media.durationMs() > 0 ? (int)((bw - 18) * Math.min(1.0, media.positionNow() / (double)media.durationMs())) : 0;
-            ctx.fill(x + 9, y + 35, x + bw - 9, y + 37, 0xFF34434B);
-            if (progressWidth > 0) ctx.fill(x + 9, y + 35, x + 9 + progressWidth, y + 37, accent);
+            while (textWidth(c, title) > bw - 18 && title.length() > 3) title = title.substring(0, title.length() - 2) + "…";
+            while (textWidth(c, artist) > bw - 18 && artist.length() > 3) artist = artist.substring(0, artist.length() - 2) + "…";
+            drawText(ctx, c, title, x + 9, y + 18, white);
+            drawText(ctx, c, artist, x + 9, y + 31, muted);
+            int progressWidth = media.durationMs() > 0
+                    ? (int)((bw - 18) * Math.min(1.0, media.positionNow() / (double)media.durationMs())) : 0;
+            ctx.fill(x + 9, y + 47, x + bw - 9, y + 50, 0xFF49344E);
+            if (progressWidth > 0) ctx.fill(x + 9, y + 47, x + 9 + progressWidth, y + 50, accent);
         }
+
         if (enabled("worldlyrics")) {
             String lyric = MusicManager.currentLyric();
             if (lyric.isBlank() && !MusicManager.state().title().isBlank()) {
                 lyric = MusicManager.lyricError().isBlank() ? "СИНХРОНИЗАЦИЯ ТЕКСТА..." : MusicManager.lyricError();
             }
             if (!lyric.isBlank()) {
-                int[] p = HudLayout.get("worldlyrics", w / 2 - 175, h - 57); int x = p[0], y = p[1], bw = 350;
+                int[] p = HudLayout.get("worldlyrics", w / 2 - 175, h - 57);
+                int x = p[0], y = p[1], bw = 350;
                 String line = lyric;
-                while (textWidth(c, line) > bw - 20 && line.length() > 3) line = line.substring(0, line.length()-2) + "…";
-                ctx.fill(x, y, x + bw, y + 25, 0xCC10171E);
-                ctx.fill(x, y, x + 2, y + 25, accent);
-                drawText(ctx, c, line, x + 10, y + 8, white);
+                while (textWidth(c, line) > bw - 38 && line.length() > 3) line = line.substring(0, line.length() - 2) + "…";
+                hudPanel(ctx, x, y, bw, 29, accent2);
+                drawText(ctx, c, "LYRICS", x + 9, y + 4, accent2);
+                drawText(ctx, c, line, x + 55, y + 10, white);
             }
         }
     }

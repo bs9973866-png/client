@@ -12,25 +12,55 @@ public final class FeatureRegistry {
 
     public static void init() {
         FEATURES.clear();
-        add("killaura", "KillAura", "Автоатака ближайшей цели (только одиночный мир).", COMBAT, false);
-        add("triggerbot", "TriggerBot", "Атака цели под прицелом (только одиночный мир).", COMBAT, false);
-        add("aimassist", "Aim Assist", "Мягкая доводка прицела к ближайшей цели.", COMBAT, false);
-        add("hitspark", "Hit Particles", "Частицы при срабатывании автоатаки.", COMBAT, true);
+
+        // Combat — client-side automation. Servers may still validate/reject interactions.
+        add("killaura", "KillAura", "Автоатака ближайшего игрока или моба.", COMBAT, false);
+        add("triggerbot", "TriggerBot", "Автоатака цели под прицелом.", COMBAT, false);
+        add("aimassist", "Aim Assist", "Плавная доводка к выбранной цели.", COMBAT, false);
+        add("reach", "Reach", "Увеличенная дистанция выбора цели на клиенте.", COMBAT, false);
+        add("velocity", "Velocity", "Игнорировать входящий пакет отбрасывания.", COMBAT, false);
+        add("targetplayers", "Target Players", "Разрешить выбор игроков как целей.", COMBAT, true);
+        add("targetmobs", "Target Mobs", "Разрешить выбор мобов как целей.", COMBAT, false);
+        add("hitspark", "Hit Particles", "Бирюзовые частицы при атаке.", COMBAT, false);
+
+        // Movement
         add("autosprint", "Auto Sprint", "Автоматический спринт при движении вперёд.", MOVEMENT, false);
-        add("speed", "Speed", "Умеренное ускорение движения в одиночном мире.", MOVEMENT, false);
-        add("nofall", "No Fall", "Сбрасывает клиентский счётчик падения.", MOVEMENT, false);
-        add("fullbright", "FullBright", "Максимальная яркость с восстановлением исходного значения.", RENDER, false);
-        add("customcrosshair", "Custom Crosshair", "Неоновый кастомный прицел.", RENDER, true);
-        add("trail", "Player Trail", "Частицы за движущимся игроком.", RENDER, false);
-        add("hitpulse", "Hit Pulse", "Лёгкая красная вспышка при получении урона.", RENDER, true);
-        add("zoom", "Zoom", "Удерживай C для приближения.", RENDER, false);
-        add("watermark", "Watermark", "Логотип NIGHTFALL в HUD.", HUD, true);
-        add("fps", "FPS Counter", "Показывает текущий FPS.", HUD, true);
-        add("coordinates", "Coordinates", "Показывает координаты игрока.", HUD, true);
+        add("speed", "Speed", "Небольшое ускорение наземного движения.", MOVEMENT, false);
+        add("nofall", "No Fall", "Сбрасывает локальный счётчик падения.", MOVEMENT, false);
+        add("spider", "Spider", "Подъём по стенам при контакте.", MOVEMENT, false);
+        add("airjump", "Air Jump", "Повторный прыжок в воздухе по нажатию Space.", MOVEMENT, false);
+        add("antifire", "Anti Fire", "Гасит огонь на локальном игроке.", MOVEMENT, false);
+        add("zoom", "Zoom", "Удерживай C для плавного приближения.", MOVEMENT, false);
+
+        // Visuals
+        add("playeresp", "Player ESP", "Контуры игроков через рендер мира.", VISUALS, false);
+        add("mobesp", "Mob ESP", "Контуры мобов.", VISUALS, false);
+        add("tracers", "Tracers", "Линии от камеры к игрокам и мобам.", VISUALS, false);
+        add("targetring", "Target Ring", "Кольцо под целью под прицелом.", VISUALS, false);
+        add("entityglow", "Entity Glow", "Дополнительный мягкий контур сущностей.", VISUALS, false);
+        add("itemesp", "Item ESP", "Контуры выпавших предметов.", VISUALS, false);
+        add("projectileesp", "Projectile ESP", "Контуры стрел и других снарядов.", VISUALS, false);
+        add("storageesp", "Storage ESP", "Контуры сундуков, бочек и шалкеров поблизости.", VISUALS, false);
+        add("oresp", "Ore ESP", "Подсветка руд в пределах загруженной области.", VISUALS, false);
+        add("fullbright", "FullBright", "Повышенная яркость с восстановлением настройки.", VISUALS, false);
+        add("customcrosshair", "Custom Crosshair", "Тонкий бирюзовый прицел.", VISUALS, true);
+        add("hitpulse", "Damage Tint", "Ненавязчивый оттенок при получении урона.", VISUALS, false);
+        add("trail", "Player Trail", "Мягкие частицы за игроком.", VISUALS, false);
+
+        // HUD
+        add("watermark", "Watermark", "Логотип и версия клиента.", HUD, true);
+        add("fps", "FPS Counter", "Счётчик кадров.", HUD, true);
+        add("coordinates", "Coordinates", "Координаты игрока.", HUD, true);
         add("keystrokes", "Keystrokes", "Индикатор WASD и прыжка.", HUD, true);
-        add("targethud", "Target HUD", "Информация о сущности под прицелом.", HUD, true);
-        add("hitmarker", "Hit Marker", "Короткий маркер при успешной атаке.", HUD, true);
-        add("menuinfo", "Menu Info", "Показывает состояние мира в меню ClickGUI.", MISC, true);
+        add("targethud", "Target HUD", "Имя и здоровье цели под прицелом.", HUD, true);
+        add("hitmarker", "Hit Marker", "Небольшой маркер после удара.", HUD, true);
+        add("armorhud", "Armor HUD", "Показатель прочности брони.", HUD, false);
+        add("totemcount", "Totem Count", "Количество тотемов в инвентаре.", HUD, false);
+        add("speedometer", "Speedometer", "Текущая горизонтальная скорость.", HUD, false);
+        add("potionhud", "Effects HUD", "Активные эффекты и оставшееся время.", HUD, false);
+
+        // Player / world utility
+        add("autototem", "Auto Totem", "Перекладывает тотем в левую руку при низком HP.", PLAYER, false);
     }
 
     private static void add(String id, String name, String description, Feature.Category category, boolean enabled) {

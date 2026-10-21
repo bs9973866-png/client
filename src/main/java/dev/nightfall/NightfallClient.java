@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -20,6 +21,7 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -32,6 +34,7 @@ import java.util.Locale;
 public final class NightfallClient implements ClientModInitializer {
     public static final String MOD_ID = "nightfall";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final Identifier ANIME_PORTRAIT = Identifier.of("nightfall", "textures/gui/anime_portrait.png");
     private static KeyBinding clickGuiKey, zoomKey, hudEditorKey, mediaKey;
     private static double originalGamma = 1.0;
     private static int originalFov = 70, auraTicks, triggerTicks, trailTicks, airJumpTicks, totemDelay;
@@ -491,20 +494,33 @@ public final class NightfallClient implements ClientModInitializer {
 
         if (enabled("mediaplayer")) {
             MusicManager.MediaState media = MusicManager.state();
-            int[] p = HudLayout.get("mediaplayer", w - 270, 40);
-            int x = p[0], y = p[1], bw = 258, bh = 57;
+            int[] p = HudLayout.get("mediaplayer", w - 290, 40);
+            int x = p[0], y = p[1], bw = 278, bh = 62;
             hudPanel(ctx, x, y, bw, bh, accent);
-            drawText(ctx, c, media.playing() ? "NOW PLAYING" : "MEDIA PLAYER", x + 9, y + 5, accent2);
+            ctx.fill(x + 7, y + 9, x + 47, y + 53, 0xFF3B2444);
+            ctx.drawTexture(RenderLayer::getGuiTextured, ANIME_PORTRAIT,
+                    x + 8, y + 10, 0.0f, 0.0f, 38, 42, 48, 60);
+            drawText(ctx, c, media.playing() ? "NOW PLAYING" : "MEDIA PLAYER", x + 54, y + 5, accent2);
             String title = media.title().isBlank() ? "Открой Spotify / Яндекс Музыку" : media.title();
             String artist = media.artist().isBlank() ? media.status() : media.artist();
-            while (textWidth(c, title) > bw - 18 && title.length() > 3) title = title.substring(0, title.length() - 2) + "…";
-            while (textWidth(c, artist) > bw - 18 && artist.length() > 3) artist = artist.substring(0, artist.length() - 2) + "…";
-            drawText(ctx, c, title, x + 9, y + 18, white);
-            drawText(ctx, c, artist, x + 9, y + 31, muted);
+            while (textWidth(c, title) > bw - 70 && title.length() > 3) title = title.substring(0, title.length() - 2) + "…";
+            while (textWidth(c, artist) > bw - 70 && artist.length() > 3) artist = artist.substring(0, artist.length() - 2) + "…";
+            drawText(ctx, c, title, x + 54, y + 18, white);
+            drawText(ctx, c, artist, x + 54, y + 31, muted);
+            int buttonY = y + 39, buttonW = 22, buttonH = 13;
+            int buttonX = x + bw - 76;
+            ctx.fill(buttonX, buttonY, buttonX + buttonW, buttonY + buttonH, 0xFF3B2444);
+            ctx.fill(buttonX + 25, buttonY, buttonX + 25 + buttonW, buttonY + buttonH, 0xFF3B2444);
+            ctx.fill(buttonX + 50, buttonY, buttonX + 50 + buttonW, buttonY + buttonH, 0xFF3B2444);
+            drawText(ctx, c, "|<", buttonX + 6, buttonY + 3, accent2);
+            drawText(ctx, c, "||", buttonX + 7 + 25, buttonY + 3, accent2);
+            drawText(ctx, c, ">|", buttonX + 6 + 50, buttonY + 3, accent2);
+            int progressX = x + 54, progressY = y + 51, progressW = bw - 138;
+            ctx.fill(progressX, progressY, progressX + progressW, progressY + 3, 0xFF49344E);
             int progressWidth = media.durationMs() > 0
-                    ? (int)((bw - 18) * Math.min(1.0, media.positionNow() / (double)media.durationMs())) : 0;
-            ctx.fill(x + 9, y + 47, x + bw - 9, y + 50, 0xFF49344E);
-            if (progressWidth > 0) ctx.fill(x + 9, y + 47, x + 9 + progressWidth, y + 50, accent);
+                    ? (int)(progressW * Math.min(1.0, media.positionNow() / (double)media.durationMs())) : 0;
+            if (progressWidth > 0) ctx.fill(progressX, progressY, progressX + progressWidth, progressY + 3, accent);
+            drawText(ctx, c, media.status().toUpperCase(Locale.ROOT), x + bw - 77, y + 53, muted);
         }
 
         if (enabled("worldlyrics")) {

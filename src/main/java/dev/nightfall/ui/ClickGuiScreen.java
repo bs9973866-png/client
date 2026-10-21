@@ -1,143 +1,244 @@
 package dev.nightfall.ui;
 
 import dev.nightfall.Feature;
-import dev.nightfall.FeatureRegistry;
 import dev.nightfall.FeatureBinds;
-import dev.nightfall.ui.ModuleSettingsScreen;
+import dev.nightfall.FeatureRegistry;
+import dev.nightfall.FeatureSettings;
 import dev.nightfall.NightfallClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-/** Low-glare, compact module dashboard. */
+/** NIGHTFALL's card-based, rose-violet ClickGUI. */
 public final class ClickGuiScreen extends Screen {
-    private Feature.Category selected = Feature.Category.VISUALS;
+    private static final int BG = 0xF10A0712;
+    private static final int SIDEBAR = 0xFF120D1B;
+    private static final int PANEL = 0xFF1A1222;
+    private static final int CARD = 0xFF24182E;
+    private static final int CARD_HOVER = 0xFF30203D;
+    private static final int CARD_ON = 0xFF30203C;
+    private static final int BORDER = 0xFF4B3154;
+    private static final int TEXT = 0xFFFFF0FE;
+    private static final int MUTED = 0xFFB39AB8;
+    private static final int ACCENT = 0xFFF05CCF;
+    private static final int ACCENT_2 = 0xFFBE8BFF;
+    private static final int ACCENT_DARK = 0xFF572447;
+
+    private Feature.Category selected = Feature.Category.COMBAT;
     private String search = "";
+    private String selectedModuleId = "killaura";
     private int scroll;
-    private String capturingBindId;
-    private final long openedAt = System.currentTimeMillis();
 
-    private static final int BG = 0xF10A0911;
-    private static final int SIDEBAR = 0xFF11101A;
-    private static final int PANEL = 0xFF191622;
-    private static final int CARD = 0xFF211D2B;
-    private static final int CARD_HOVER = 0xFF2D263A;
-    private static final int BORDER = 0xFF393246;
-    private static final int TEXT = 0xFFF1ECF7;
-    private static final int MUTED = 0xFF9991A8;
-    private static final int ACCENT = 0xFFB98BFF;
-    private static final int ACCENT_DARK = 0xFF362747;
+    private record Geometry(int x, int y, int pw, int ph, int sideW, int detailW,
+                            int mainX, int mainRight, int listY, int footerY,
+                            int cardH, int gapY, int columns, int cardGap,
+                            int cardW, int visibleRows) {}
 
-    public ClickGuiScreen() { super(Text.literal("NIGHTFALL")); }
+    public ClickGuiScreen() {
+        super(Text.literal("NIGHTFALL"));
+    }
 
-    @Override public void render(DrawContext ctx, int mx, int my, float delta) {
-        int w = width, h = height;
-        ctx.fill(0, 0, w, h, 0xA6070A0D);
-        int pw = Math.min(740, w - 28), ph = Math.min(430, h - 24);
-        if (pw < 360 || ph < 200) {
-            drawText(ctx, "Увеличь разрешение экрана для ClickGUI", 14, 14, TEXT);
+    private Geometry geometry() {
+        int pw = Math.min(960, width - 28);
+        int ph = Math.min(560, height - 24);
+        int x = (width - pw) / 2, y = (height - ph) / 2;
+        int sideW = pw >= 900 ? 170 : 148;
+        int detailW = Math.min(238, Math.max(190, pw / 4));
+        int mainX = x + sideW + 17;
+        int mainRight = x + pw - detailW - 27;
+        int listY = y + 92, footerY = y + ph - 31;
+        int cardH = 65, gapY = 8, cardGap = 9;
+        int contentW = mainRight - mainX;
+        int columns = contentW >= 370 ? 2 : 1;
+        int cardW = Math.max(130, (contentW - (columns - 1) * cardGap) / columns);
+        int visibleRows = Math.max(1, (footerY - listY - 3) / (cardH + gapY));
+        return new Geometry(x, y, pw, ph, sideW, detailW, mainX, mainRight, listY,
+                footerY, cardH, gapY, columns, cardGap, cardW, visibleRows);
+    }
+
+    @Override
+    public void render(DrawContext ctx, int mx, int my, float delta) {
+        ctx.fill(0, 0, width, height, 0xB8090610);
+        Geometry g = geometry();
+        if (g.pw < 590 || g.ph < 350) {
+            drawText(ctx, "Увеличь разрешение экрана для NIGHTFALL ClickGUI", 14, 14, TEXT);
             return;
         }
-        int x = (w - pw) / 2, y = (h - ph) / 2, sw = 158;
-        ctx.fill(x + 3, y + 4, x + pw + 3, y + ph + 4, 0x50000000);
-        ctx.fill(x, y, x + pw, y + ph, BG);
-        ctx.fill(x, y, x + pw, y + 1, BORDER);
-        ctx.fill(x, y + 1, x + sw, y + ph, SIDEBAR);
-        ctx.fill(x, y, x + 3, y + ph, ACCENT);
-        ctx.fill(x + sw, y + 1, x + sw + 1, y + ph - 1, BORDER);
 
-        drawText(ctx, "NIGHTFALL", x + 18, y + 17, TEXT);
-        drawText(ctx, "CLIENT  /  1.21.4", x + 18, y + 33, MUTED);
-        ctx.fill(x + 16, y + 51, x + sw - 16, y + 52, BORDER);
+        int x = g.x, y = g.y, right = x + g.pw, bottom = y + g.ph;
+        ctx.fill(x + 4, y + 5, right + 4, bottom + 5, 0x65000000);
+        ctx.fill(x, y, right, bottom, BG);
+        ctx.fill(x, y, right, y + 1, BORDER);
+        ctx.fill(x, y, x + 3, bottom, ACCENT);
+        ctx.fill(x + 3, y + 1, x + g.sideW, bottom - 1, SIDEBAR);
+        ctx.fill(x + g.sideW, y + 1, x + g.sideW + 1, bottom - 1, BORDER);
+
+        // Brand block.
+        ctx.fill(x + 18, y + 18, x + 46, y + 46, ACCENT_DARK);
+        ctx.fill(x + 18, y + 18, x + 46, y + 20, ACCENT);
+        drawText(ctx, "N", x + 27, y + 26, TEXT);
+        drawText(ctx, "NIGHTFALL", x + 55, y + 20, TEXT);
+        drawText(ctx, "CLIENT  /  1.21.4", x + 55, y + 36, MUTED);
+        ctx.fill(x + 17, y + 58, x + g.sideW - 16, y + 59, BORDER);
 
         Feature.Category[] categories = Feature.Category.values();
         for (int i = 0; i < categories.length; i++) {
             Feature.Category category = categories[i];
-            int cy = y + 64 + i * 32;
+            int cy = y + 76 + i * 43;
             boolean active = category == selected;
             if (active) {
-                ctx.fill(x + 10, cy - 6, x + sw - 10, cy + 19, ACCENT_DARK);
-                ctx.fill(x + 10, cy - 6, x + 12, cy + 19, ACCENT);
+                ctx.fill(x + 10, cy, x + g.sideW - 10, cy + 32, ACCENT_DARK);
+                ctx.fill(x + 10, cy, x + 13, cy + 32, ACCENT);
+                ctx.fill(x + 13, cy + 1, x + g.sideW - 11, cy + 2, 0xFF79405F);
             }
-            String code = categoryCode(category);
-            ctx.fill(x + 17, cy - 3, x + 35, cy + 15, active ? ACCENT_DARK : 0xFF211E2B);
-            drawText(ctx, code, x + 19, cy + 2, active ? ACCENT : MUTED);
-            drawText(ctx, category.title(), x + 42, cy + 1, active ? TEXT : MUTED);
-            String count = Integer.toString(FeatureRegistry.in(category).size());
-            drawText(ctx, count, x + sw - 23 - textRenderer.getWidth(UiText.of(count)), cy + 1, active ? ACCENT : 0xFF596771);
+            int chip = active ? 0xFF6B2B5C : 0xFF261A30;
+            ctx.fill(x + 18, cy + 7, x + 39, cy + 27, chip);
+            drawText(ctx, categoryCode(category), x + 21, cy + 13, active ? TEXT : MUTED);
+            drawText(ctx, category.title(), x + 48, cy + 12, active ? TEXT : MUTED);
+            long on = FeatureRegistry.in(category).stream().filter(Feature::enabled).count();
+            if (on > 0) {
+                String count = Long.toString(on);
+                ctx.fill(x + g.sideW - 29, cy + 9, x + g.sideW - 17, cy + 23, ACCENT_DARK);
+                drawText(ctx, count, x + g.sideW - 26, cy + 12, ACCENT_2);
+            }
         }
 
-        int fx = x + 18, fy = y + ph - 47;
-        ctx.fill(fx, fy, x + sw - 18, fy + 1, BORDER);
-        drawText(ctx, "ПКМ  ·  НАСТРОЙКИ МОДУЛЯ", fx, fy + 9, MUTED);
-        drawText(ctx, "CONFIG AUTO-SAVED", fx, fy + 23, 0xFF607D7D);
+        int profileY = bottom - 69;
+        ctx.fill(x + 16, profileY, x + g.sideW - 16, profileY + 1, BORDER);
+        ctx.fill(x + 18, profileY + 12, x + 43, profileY + 37, 0xFF38213F);
+        drawText(ctx, "NF", x + 21, profileY + 20, ACCENT_2);
+        drawText(ctx, "PREMIUM UI", x + 50, profileY + 13, TEXT);
+        drawText(ctx, "CONFIG AUTO-SAVED", x + 50, profileY + 27, MUTED);
+        drawText(ctx, "RIGHT SHIFT  /  CLOSE", x + 18, bottom - 17, 0xFF866A8D);
 
-        int tx = x + sw + 18, right = x + pw - 18, contentW = right - tx;
-        drawText(ctx, selected.title().toUpperCase(Locale.ROOT), tx, y + 17, ACCENT);
-        String subtitle = "Локальные функции клиента и визуальные модули";
-        drawText(ctx, subtitle, tx, y + 33, MUTED);
+        // Main heading and search.
+        int mainX = g.mainX;
+        drawText(ctx, selected.title().toUpperCase(Locale.ROOT), mainX, y + 17, ACCENT);
+        drawText(ctx, "Выбери модуль. ПКМ открывает его настройки.", mainX, y + 34, MUTED);
+        int searchY = y + 52, searchW = Math.min(280, g.mainRight - mainX - 95);
+        ctx.fill(mainX, searchY, mainX + searchW, searchY + 25, PANEL);
+        ctx.fill(mainX, searchY, mainX + searchW, searchY + 1, BORDER);
+        drawText(ctx, search.isBlank() ? "ПОИСК МОДУЛЕЙ..." : "SEARCH  " + search,
+                mainX + 9, searchY + 9, search.isBlank() ? 0xFF8F7798 : TEXT);
+        String activeCount = FeatureRegistry.all().stream().filter(Feature::enabled).count() + " ON";
+        drawText(ctx, activeCount, g.mainRight - textRenderer.getWidth(UiText.of(activeCount)), searchY + 9, ACCENT_2);
 
-        int searchY = y + 51, searchW = Math.min(290, contentW);
-        ctx.fill(tx, searchY, tx + searchW, searchY + 24, PANEL);
-        ctx.fill(tx, searchY, tx + searchW, searchY + 1, BORDER);
-        String searchLabel = capturingBindId != null ? "НАЖМИ КЛАВИШУ ДЛЯ БИНДА..." : (search.isEmpty() ? "ПОИСК МОДУЛЕЙ..." : "> " + search);
-        drawText(ctx, searchLabel, tx + 9, searchY + 8, capturingBindId != null ? ACCENT : (search.isEmpty() ? 0xFF817890 : TEXT));
-        String state = FeatureRegistry.all().stream().filter(Feature::enabled).count() + " ACTIVE";
-        drawText(ctx, state, right - textRenderer.getWidth(UiText.of(state)), searchY + 8, ACCENT);
+        List<Feature> modules = filteredModules();
+        if (modules.stream().noneMatch(f -> f.id().equals(selectedModuleId))) {
+            selectedModuleId = modules.isEmpty() ? "" : modules.get(0).id();
+        }
 
-        List<Feature> modules = FeatureRegistry.in(selected).stream()
+        int visibleCount = g.columns * g.visibleRows;
+        int maxScroll = Math.max(0, (int)Math.ceil(modules.size() / (double)g.columns) - g.visibleRows);
+        scroll = Math.max(0, Math.min(scroll, maxScroll));
+        ctx.enableScissor(g.mainX, g.listY, g.mainRight, g.footerY - 3);
+        for (int i = 0; i < modules.size(); i++) {
+            int col = i % g.columns;
+            int row = i / g.columns - scroll;
+            if (row < 0 || row >= g.visibleRows) continue;
+            Feature feature = modules.get(i);
+            int bx = g.mainX + col * (g.cardW + g.cardGap);
+            int by = g.listY + row * (g.cardH + g.gapY);
+            boolean hovered = inside(mx, my, bx, by, g.cardW, g.cardH);
+            if (hovered) selectedModuleId = feature.id();
+            boolean selectedCard = feature.id().equals(selectedModuleId);
+            int cardColor = feature.enabled() ? CARD_ON : (hovered ? CARD_HOVER : CARD);
+            ctx.fill(bx, by, bx + g.cardW, by + g.cardH, cardColor);
+            ctx.fill(bx, by, bx + g.cardW, by + 1, feature.enabled() || selectedCard ? ACCENT : BORDER);
+            ctx.fill(bx, by + 1, bx + 2, by + g.cardH - 1, feature.enabled() ? ACCENT : (selectedCard ? ACCENT_2 : BORDER));
+
+            drawText(ctx, feature.name(), bx + 10, by + 8, TEXT);
+            String desc = feature.description();
+            int maxChars = Math.max(12, (g.cardW - 20) / 5);
+            if (desc.length() > maxChars) desc = desc.substring(0, maxChars - 1) + "…";
+            drawText(ctx, desc, bx + 10, by + 27, MUTED);
+            drawText(ctx, "BIND  " + FeatureBinds.label(feature.id()), bx + 10, by + 46,
+                    FeatureBinds.isBound(feature.id()) ? ACCENT_2 : 0xFF886F90);
+
+            int tx = bx + g.cardW - 42, ty = by + 8;
+            ctx.fill(tx, ty, tx + 31, ty + 15, feature.enabled() ? ACCENT_DARK : 0xFF3A2A41);
+            ctx.fill(tx + (feature.enabled() ? 17 : 3), ty + 3, tx + (feature.enabled() ? 27 : 13), ty + 12,
+                    feature.enabled() ? ACCENT : 0xFF9A83A4);
+            drawText(ctx, feature.enabled() ? "ON" : "OFF", bx + g.cardW - 41, by + 49,
+                    feature.enabled() ? ACCENT : MUTED);
+        }
+        ctx.disableScissor();
+
+        if (modules.isEmpty()) drawText(ctx, "Ничего не найдено", mainX + 3, g.listY + 9, MUTED);
+        String footer = modules.size() + " MODULES   /   LMB: TOGGLE   /   RMB: SETTINGS";
+        drawText(ctx, footer, mainX, g.footerY + 8, MUTED);
+
+        // Live module detail card on the right.
+        int dx = g.mainRight + 13, dy = g.listY, dw = x + g.pw - 15 - dx, dh = g.footerY - g.listY - 3;
+        ctx.fill(dx, dy, dx + dw, dy + dh, PANEL);
+        ctx.fill(dx, dy, dx + dw, dy + 1, BORDER);
+        ctx.fill(dx, dy, dx + 2, dy + dh, ACCENT);
+        drawText(ctx, "MODULE DETAILS", dx + 12, dy + 12, ACCENT_2);
+
+        Feature chosen = FeatureRegistry.find(selectedModuleId).orElse(null);
+        if (chosen != null) {
+            drawText(ctx, chosen.name(), dx + 12, dy + 34, TEXT);
+            drawText(ctx, chosen.enabled() ? "ENABLED" : "DISABLED", dx + 12, dy + 51,
+                    chosen.enabled() ? ACCENT : MUTED);
+            String desc = chosen.description();
+            int charW = Math.max(13, (dw - 24) / 5);
+            int textY = dy + 73;
+            for (String line : wrap(desc, charW, 3)) {
+                drawText(ctx, line, dx + 12, textY, MUTED);
+                textY += 13;
+            }
+            ctx.fill(dx + 12, textY + 3, dx + dw - 12, textY + 4, BORDER);
+            textY += 16;
+            drawText(ctx, "SETTINGS", dx + 12, textY, ACCENT);
+            textY += 15;
+            List<FeatureSettings.Spec> specs = FeatureSettings.forModule(chosen.id());
+            if (specs.isEmpty()) {
+                drawText(ctx, "Нет дополнительных", dx + 12, textY, MUTED);
+                drawText(ctx, "параметров.", dx + 12, textY + 13, MUTED);
+            } else {
+                int shown = Math.min(specs.size(), 4);
+                for (int i = 0; i < shown && textY < dy + dh - 64; i++) {
+                    FeatureSettings.Spec spec = specs.get(i);
+                    String value = FeatureSettings.displayValue(spec);
+                    drawText(ctx, spec.label(), dx + 12, textY, MUTED);
+                    int valWidth = textRenderer.getWidth(UiText.of(value));
+                    drawText(ctx, value, dx + dw - valWidth - 12, textY, TEXT);
+                    if (spec.type() == FeatureSettings.Type.SLIDER) {
+                        int barX = dx + 12, barY = textY + 11, barW = dw - 24;
+                        ctx.fill(barX, barY, barX + barW, barY + 3, 0xFF49334F);
+                        double range = Math.max(0.0001, spec.max() - spec.min());
+                        double fraction = (FeatureSettings.number(chosen.id(), settingName(spec)) - spec.min()) / range;
+                        int filled = (int)(barW * Math.max(0, Math.min(1, fraction)));
+                        ctx.fill(barX, barY, barX + filled, barY + 3, ACCENT);
+                        textY += 7;
+                    }
+                    textY += 22;
+                }
+            }
+            int bindY = dy + dh - 47;
+            ctx.fill(dx + 10, bindY, dx + dw - 10, bindY + 34, ACCENT_DARK);
+            drawText(ctx, "BIND  " + FeatureBinds.label(chosen.id()), dx + 17, bindY + 7, TEXT);
+            drawText(ctx, "ПКМ ПО КАРТОЧКЕ", dx + 17, bindY + 20, ACCENT_2);
+        } else {
+            drawText(ctx, "Выбери модуль", dx + 12, dy + 40, MUTED);
+        }
+
+        String version = "NIGHTFALL  /  1.21.4";
+        drawText(ctx, version, right - textRenderer.getWidth(UiText.of(version)) - 14, bottom - 18, 0xFF886E91);
+    }
+
+    private List<Feature> filteredModules() {
+        return FeatureRegistry.in(selected).stream()
                 .filter(f -> search.isBlank()
                         || f.name().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
                         || f.id().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
                         || f.description().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toList());
-
-        int listY = y + 87, footerY = y + ph - 27, cardH = 61, gapY = 8;
-        int columns = contentW >= 390 ? 2 : 1;
-        int cardGap = 9, cardW = (contentW - (columns - 1) * cardGap) / columns;
-        int visibleRows = Math.max(1, (footerY - listY - 7) / (cardH + gapY));
-        int rowCount = (int)Math.ceil(modules.size() / (double)columns);
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, rowCount - visibleRows)));
-
-        ctx.enableScissor(tx, listY, right, footerY - 3);
-        for (int i = 0; i < modules.size(); i++) {
-            int col = i % columns, row = i / columns - scroll;
-            if (row < 0 || row >= visibleRows) continue;
-            Feature feature = modules.get(i);
-            int bx = tx + col * (cardW + cardGap), by = listY + row * (cardH + gapY);
-            boolean hovered = mx >= bx && mx <= bx + cardW && my >= by && my <= by + cardH;
-            int bg = feature.enabled() ? 0xFF202D35 : (hovered ? CARD_HOVER : CARD);
-            ctx.fill(bx, by, bx + cardW, by + cardH, bg);
-            ctx.fill(bx, by, bx + cardW, by + 1, feature.enabled() ? ACCENT : BORDER);
-            if (feature.enabled()) ctx.fill(bx, by + 1, bx + 2, by + cardH - 1, ACCENT);
-            drawText(ctx, feature.name(), bx + 10, by + 9, feature.enabled() ? TEXT : 0xFFC3CDD1);
-
-            String stateLabel = feature.enabled() ? "ON" : "OFF";
-            int tw = textRenderer.getWidth(UiText.of(stateLabel));
-            int pillX = bx + cardW - tw - 20, pillY = by + 7;
-            ctx.fill(pillX, pillY, bx + cardW - 8, pillY + 15, feature.enabled() ? ACCENT_DARK : 0xFF2B353E);
-            drawText(ctx, stateLabel, pillX + 6, pillY + 4, feature.enabled() ? ACCENT : MUTED);
-
-            String desc = feature.description();
-            int maxChars = Math.max(12, (cardW - 18) / 5);
-            if (desc.length() > maxChars) desc = desc.substring(0, maxChars - 1) + "…";
-            drawText(ctx, desc, bx + 10, by + 31, MUTED);
-            boolean capturing = feature.id().equals(capturingBindId);
-            String bindLabel = capturing ? "НАЖМИ КЛАВИШУ..." : "BIND  " + FeatureBinds.label(feature.id());
-            int bindColor = capturing ? ACCENT : (FeatureBinds.isBound(feature.id()) ? 0xFFCBA8FF : 0xFF777087);
-            drawText(ctx, bindLabel, bx + 10, by + 46, bindColor);
-        }
-        ctx.disableScissor();
-
-        if (modules.isEmpty()) drawText(ctx, "Ничего не найдено", tx + 2, listY + 8, MUTED);
-        String footer = modules.size() + " MODULES  ·  ЛКМ: ON/OFF  ·  ПКМ: SETTINGS";
-        drawText(ctx, footer, tx, footerY + 7, MUTED);
-        String version = "EXO 2 UI";
-        drawText(ctx, version, right - textRenderer.getWidth(UiText.of(version)), footerY + 7, 0xFF607D7D);
     }
 
     private String categoryCode(Feature.Category category) {
@@ -145,46 +246,76 @@ public final class ClickGuiScreen extends Screen {
             case COMBAT -> "CB";
             case MOVEMENT -> "MV";
             case VISUALS -> "VS";
-            case HUD -> "HUD";
+            case HUD -> "UI";
             case WORLD -> "WR";
             case PLAYER -> "PL";
         };
+    }
+
+    private List<String> wrap(String value, int widthChars, int maxLines) {
+        if (value == null || value.isBlank()) return List.of();
+        String[] words = value.split("\\s+");
+        java.util.ArrayList<String> lines = new java.util.ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : words) {
+            if (line.length() > 0 && line.length() + word.length() + 1 > widthChars) {
+                lines.add(line.toString());
+                line.setLength(0);
+                if (lines.size() >= maxLines) break;
+            }
+            if (line.length() > 0) line.append(' ');
+            line.append(word);
+        }
+        if (lines.size() < maxLines && line.length() > 0) lines.add(line.toString());
+        if (lines.size() == maxLines && !lines.isEmpty()) {
+            int last = lines.size() - 1;
+            String s = lines.get(last);
+            if (s.length() > 2) lines.set(last, s.substring(0, s.length() - 1) + "…");
+        }
+        return lines;
+    }
+
+    private String settingName(FeatureSettings.Spec spec) {
+        int dot = spec.key().indexOf('.');
+        return dot < 0 ? spec.key() : spec.key().substring(dot + 1);
     }
 
     private void drawText(DrawContext ctx, String value, int x, int y, int color) {
         ctx.drawTextWithShadow(textRenderer, UiText.of(value), x, y, color);
     }
 
-    @Override public boolean mouseClicked(double mx, double my, int button) {
+    private boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT)
             return super.mouseClicked(mx, my, button);
-        int pw = Math.min(740, width - 28), ph = Math.min(430, height - 24);
-        if (pw < 360 || ph < 200) return true;
-        int x = (width - pw) / 2, y = (height - ph) / 2, sw = 158;
+        Geometry g = geometry();
+        if (g.pw < 590 || g.ph < 350) return true;
+        int x = g.x, y = g.y;
+
         for (int i = 0; i < Feature.Category.values().length; i++) {
-            int cy = y + 64 + i * 32;
-            if (mx >= x + 8 && mx <= x + sw - 8 && my >= cy - 8 && my <= cy + 21) {
+            int cy = y + 76 + i * 43;
+            if (inside(mx, my, x + 8, cy, g.sideW - 16, 32)) {
                 selected = Feature.Category.values()[i];
                 scroll = 0;
+                List<Feature> next = filteredModules();
+                selectedModuleId = next.isEmpty() ? "" : next.get(0).id();
                 return true;
             }
         }
-        int tx = x + sw + 18, right = x + pw - 18, contentW = right - tx;
-        int listY = y + 87, footerY = y + ph - 27, cardH = 61, gapY = 8;
-        int columns = contentW >= 390 ? 2 : 1, cardGap = 9, cardW = (contentW - (columns - 1) * cardGap) / columns;
-        int visibleRows = Math.max(1, (footerY - listY - 7) / (cardH + gapY));
-        List<Feature> modules = FeatureRegistry.in(selected).stream()
-                .filter(f -> search.isBlank()
-                        || f.name().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
-                        || f.id().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT))
-                        || f.description().toLowerCase(Locale.ROOT).contains(search.toLowerCase(Locale.ROOT)))
-                .collect(Collectors.toList());
+
+        List<Feature> modules = filteredModules();
         for (int i = 0; i < modules.size(); i++) {
-            int col = i % columns, row = i / columns - scroll;
-            if (row < 0 || row >= visibleRows) continue;
-            int bx = tx + col * (cardW + cardGap), by = listY + row * (cardH + gapY);
-            if (mx >= bx && mx <= bx + cardW && my >= by && my <= by + cardH) {
+            int col = i % g.columns, row = i / g.columns - scroll;
+            if (row < 0 || row >= g.visibleRows) continue;
+            int bx = g.mainX + col * (g.cardW + g.cardGap);
+            int by = g.listY + row * (g.cardH + g.gapY);
+            if (inside(mx, my, bx, by, g.cardW, g.cardH)) {
                 Feature f = modules.get(i);
+                selectedModuleId = f.id();
                 if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
                     client.setScreen(new ModuleSettingsScreen(f.id(), this));
                 } else {
@@ -193,15 +324,18 @@ public final class ClickGuiScreen extends Screen {
                 return true;
             }
         }
+
         return true;
     }
 
-    @Override public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+    @Override
+    public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         scroll = Math.max(0, scroll - (int)Math.signum(vertical));
         return true;
     }
 
-    @Override public boolean charTyped(char chr, int modifiers) {
+    @Override
+    public boolean charTyped(char chr, int modifiers) {
         if (!Character.isISOControl(chr) && search.length() < 32) {
             search += chr;
             scroll = 0;
@@ -210,21 +344,8 @@ public final class ClickGuiScreen extends Screen {
         return super.charTyped(chr, modifiers);
     }
 
-    @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (capturingBindId != null) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                capturingBindId = null;
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE) {
-                FeatureBinds.set(capturingBindId, GLFW.GLFW_KEY_UNKNOWN);
-                capturingBindId = null;
-                return true;
-            }
-            FeatureBinds.set(capturingBindId, keyCode);
-            capturingBindId = null;
-            return true;
-        }
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT || keyCode == GLFW.GLFW_KEY_ESCAPE) {
             close();
             return true;
@@ -242,5 +363,8 @@ public final class ClickGuiScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    @Override public boolean shouldCloseOnEsc() { return true; }
+    @Override
+    public boolean shouldCloseOnEsc() {
+        return true;
+    }
 }

@@ -46,6 +46,7 @@ public final class FeatureRegistry {
         add("customcrosshair", "Custom Crosshair", "Тонкий бирюзовый прицел.", VISUALS, true);
         add("hitpulse", "Damage Tint", "Ненавязчивый оттенок при получении урона.", VISUALS, false);
         add("trail", "Player Trail", "Мягкие частицы за игроком.", VISUALS, false);
+        add("radar", "Player Radar", "Мини-карта игроков в радиусе 32 блоков.", VISUALS, false);
 
         // HUD
         add("watermark", "Watermark", "Логотип и версия клиента.", HUD, true);

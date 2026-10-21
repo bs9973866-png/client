@@ -40,11 +40,11 @@ public final class PearlFollowManager {
                 || client.player.networkHandler == null || client.world == null) {
             handledPearls.clear();
             restoreSlot = -1;
-            cancelPending(null);
+            cancelPending(client.player);
             return;
         }
 
-        PlayerEntity player = client.player;
+        var player = client.player;
         restoreSlotIfDue(player);
 
         if (pendingThrowAtTick >= 0) {
@@ -53,14 +53,8 @@ public final class PearlFollowManager {
                 return;
             }
             if (tickCount >= pendingThrowAtTick) {
-                // Prefer the opponent's latest position if it is still available.
-                Entity ownerEntity = client.world.getEntityById(pendingOwnerId);
-                Vec3d target = pendingTarget;
-                if (ownerEntity instanceof PlayerEntity owner && owner != player) {
-                    target = predictedPlayerTarget(owner);
-                }
-                if (target != null) {
-                    aimAt(player, target);
+                // Keep the aim from the previous tick; it has had time to be sent to the server.
+                if (pendingTarget != null) {
                     if (pendingPearlSlot >= 0) {
                         if (player.getInventory().selectedSlot != pendingPearlSlot) {
                             player.getInventory().selectedSlot = pendingPearlSlot;

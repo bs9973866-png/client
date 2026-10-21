@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.nightfall.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "nightfall-refmap.json",
+  "client": [
+    "MinecraftClientMixin",
+    "InGameHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

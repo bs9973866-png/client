@@ -5,6 +5,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 
 public final class MediaPlayerScreen extends Screen {
     public MediaPlayerScreen() { super(Text.literal("NIGHTFALL Media")); }
@@ -35,9 +36,9 @@ public final class MediaPlayerScreen extends Screen {
         String lyric=MusicManager.currentLyric();
         draw(ctx,fit(lyric.isBlank()?"Lyrics: "+(MusicManager.lyricError().isBlank()?"ищем синхронный текст…":MusicManager.lyricError()):lyric,pw-40),x+20,y+145,lyric.isBlank()?0xFF73858D:0xFFBFDAD6);
         int gap=8,bw=(pw-40-gap*2)/3,bh=31,by=y+174,bx=x+20;
-        button(ctx,bx,by,bw,bh,"⏮ ПРЕДЫДУЩИЙ",mx,my,()->MusicManager.command("previous"));
-        button(ctx,bx+bw+gap,by,bw,bh,state.playing()?"Ⅱ ПАУЗА":"▶ ПЛЕЙ",mx,my,()->MusicManager.command("toggle"));
-        button(ctx,bx+(bw+gap)*2,by,bw,bh,"СЛЕДУЮЩИЙ ⏭",mx,my,()->MusicManager.command("next"));
+        button(ctx,bx,by,bw,bh,"ПРЕДЫДУЩИЙ",mx,my);
+        button(ctx,bx+bw+gap,by,bw,bh,state.playing()?"ПАУЗА":"ПЛЕЙ",mx,my);
+        button(ctx,bx+(bw+gap)*2,by,bw,bh,"СЛЕДУЮЩИЙ",mx,my);
         draw(ctx,"K — открыть плеер     ESC — закрыть",x+20,y+ph-18,0xFF60717A);
     }
     private String fit(String text,int maxWidth){
@@ -47,7 +48,7 @@ public final class MediaPlayerScreen extends Screen {
         return s.equals(text)?s:(s.length()>1?s.substring(0,s.length()-1)+"…":"…");
     }
     private void draw(DrawContext ctx,String text,int x,int y,int color){ctx.drawTextWithShadow(textRenderer,UiText.of(text),x,y,color);}
-    private void button(DrawContext ctx,int x,int y,int w,int h,String label,int mx,int my,Runnable action){
+    private void button(DrawContext ctx,int x,int y,int w,int h,String label,int mx,int my){
         boolean hover=mx>=x&&mx<=x+w&&my>=y&&my<=y+h;
         ctx.fill(x,y,x+w,y+h,hover?0xFF30434A:0xFF202D35);
         ctx.fill(x,y,x+w,y+1,hover?0xFF79BDB5:0xFF35434B);
@@ -67,8 +68,7 @@ public final class MediaPlayerScreen extends Screen {
     }
     private boolean inside(double mx,double my,int x,int y,int w,int h){return mx>=x&&mx<=x+w&&my>=y&&my<=y+h;}
     @Override public boolean keyPressed(int keyCode,int scanCode,int modifiers){
-        if(keyCode==256||keyCode==GLFW_KEY_K){close();return true;}
+        if(keyCode==GLFW.GLFW_KEY_ESCAPE||keyCode==GLFW.GLFW_KEY_K){close();return true;}
         return super.keyPressed(keyCode,scanCode,modifiers);
     }
-    private static final int GLFW_KEY_K=75;
 }
